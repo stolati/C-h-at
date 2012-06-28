@@ -55,7 +55,7 @@ object Canvas extends Controller {
   
   def ws = WebSocket.async[JsValue]{ request =>
     
-    MapRoom.join()
+    MapRoom.join("map1")
   
     /*
     CanvasPlace.hello()

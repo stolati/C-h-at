@@ -46,7 +46,7 @@ myCanvas_draw = (cv) ->
               when "F"
                 cv.fill(0, 0, 0)
               when "B"
-                cv.fill(0, 255, 255)
+                cv.fill(255, 255, 255)
                 
             cv.rect(step * x + 1, step * y + 1, step, step)
             

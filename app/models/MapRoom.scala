@@ -28,6 +28,18 @@ case class MapSurface(h : Int, w : Int, content : Array[Array[MapElement]]) {
 
 object MapSurface {
   
+   def writes(ms : MapSurface): JsValue = JsObject(List(
+	      "h" -> JsNumber(ms.h),
+	      "w" -> JsNumber(ms.w),
+	      "content" -> JsArray(ms.content.map( line =>
+	        JsArray(line.collect {
+	           case Floor() => JsString("F")
+	           case Block() => JsString("B")
+	           case FloorLocalJump(_, _) => JsString("F")
+	        })
+	      ))
+	))
+  
   def fromHumain(ground : String, lang : Map[Char, MapElement]) = {
     val content = ground.split('\n').map{_.trim()}.filter(!_.isEmpty()).map{ s =>
       s.map( lang(_) ).toArray
@@ -38,8 +50,6 @@ object MapSurface {
     
     MapSurface(h, w, content)
   }
-  
-  
   
   //represent a mapz
   //0 mean white/traversable
@@ -70,51 +80,54 @@ JJJJJJJJJJJJJJJJJJJJJ
   """, Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(6, 6)))
   
 
- def writes(ms : MapSurface): JsValue = JsObject(List(
-	      "h" -> JsNumber(ms.h),
-	      "w" -> JsNumber(ms.w),
-	      "content" -> JsArray(ms.content.map( line =>
-	        JsArray(line.collect {
-	           case Floor() => JsString("F")
-	           case Block() => JsString("B")
-	           case FloorLocalJump(_, _) => JsString("F")
-	        })
-	      ))
-	  ))
+  def map2 = fromHumain("""
+00000000000000000000
+00000000000000000000
+00000000000000000000
+""", Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(1, 1)))
+  
+
+  def names = Map(
+		"map1" -> MapSurface.map1,
+		"map2" -> MapSurface.map2
+  )
   
 }
 
 
-
-
-
 object MapRoom {
   
-  lazy val default = {
-    val myMap = new MapRoom("toto")
-    myMap.start()
-    myMap
+  
+  
+  lazy val maps = {
+    MapSurface.names.map { e =>
+      val (s, ms) = e
+      val myMap = new MapRoom(ms)
+      myMap.start()
+      s -> myMap
+    }.toMap
   }
   
   lazy val random = new Random(12345)
-
   
   var id = 0
   def getNextId = { id += 1 ; id }
 
-  def getInitBody = Body("id:" + MapRoom.getNextId, random.nextInt(10) + 2, random.nextInt(10) + 2)
-
+  //def getInitBody = Body("id:" + MapRoom.getNextId, random.nextInt(10) + 2, random.nextInt(10) + 2)
+  def getInitBody = Body("id:" + MapRoom.getNextId, 1, 1)
+  
   def Msg(kind : String, data : JsValue) = JsObject(Seq("type" -> JsString(kind), "data" -> data))
   
-  def receptionWS(event : JsValue, id : String) = { 
+  def receptionWS(event : JsValue, id : String, curMap : MapRoom) = { 
       println("reception of : " + event.toString())
-      default ! ((event \ "type").as[String] match {
+      curMap ! ((event \ "type").as[String] match {
           case "move" => Move(id, Body.reads(event \ "data"))
       })
   }
   
-  def join():Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
-    val speak = (default !? Join())
+  def join(name : String):Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
+    val curMap = maps(name)
+    val speak = (curMap !? Join())
     
     speak match {
       case (fci : FirstConnectionInfo, channel : Enumerator[JsValue]) => 
@@ -123,9 +136,9 @@ object MapRoom {
         println("connected launched")
         // Create an Iteratee to consume the feed
         val iteratee = Iteratee.foreach[JsValue] { event =>
-          receptionWS(event, id)
+          receptionWS(event, id, curMap)
         }.mapDone { _ =>
-          default ! Quit(id)
+          curMap ! Quit(id)
         }
         
         val msg = MapRoom.Msg("first_connect", FirstConnectionInfo.writes(fci))
@@ -137,11 +150,10 @@ object MapRoom {
  
 }
 
-class MapRoom(mapName : String) extends Actor {
+class MapRoom(myMap : MapSurface) extends Actor {
   case class BodyInter(var b : Body, channel : PushEnumerator[JsValue])
   
   var members = Map.empty[String, BodyInter]
-  val myMap = MapSurface.map1
   
   def act() = {
     loop {
