@@ -4,10 +4,10 @@ import play.api._
 import play.api.mvc._
 import play.api.libs.iteratee._
 import play.api.libs.json._
+import models._
 
 object CanvasPlaces {
   var allCP = List[CanvasPlaces]()
-  
 }
 
 
@@ -55,6 +55,11 @@ object Canvas extends Controller {
   
   def ws = WebSocket.async[JsValue]{ request =>
     
+    MapRoom.join()
+  
+    /*
+    CanvasPlace.hello()
+    
     val cp = new CanvasPlaces()
     cp.connect()
     
@@ -66,6 +71,7 @@ object Canvas extends Controller {
   	//val out = Enumerator("Hello!") >>> Enumerator.eof //send the message and close
   	
   	(in, out)
+  	*/
   }
   
   
