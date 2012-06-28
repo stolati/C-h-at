@@ -1,16 +1,16 @@
 package models
 
-import akka.actor._
-import akka.util.duration._
 import play.api._
 import play.api.libs.json._
 import play.api.libs.iteratee._
 import play.api.libs.concurrent._
-import akka.util.Timeout
-import akka.pattern.ask
 import play.api.Play.current
+
 import scala.util.Random
 import java.util.ArrayList
+
+import scala.actors._
+import scala.actors.Actor._
 
 
 sealed abstract class MapElement()
@@ -90,9 +90,12 @@ JJJJJJJJJJJJJJJJJJJJJ
 
 object MapRoom {
   
-  implicit val timeout = Timeout(1 second)
+  lazy val default = {
+    val myMap = new MapRoom("toto")
+    myMap.start()
+    myMap
+  }
   
-  lazy val default = Akka.system.actorOf(Props[MapRoom]())
   lazy val random = new Random(12345)
 
   
@@ -111,10 +114,9 @@ object MapRoom {
   }
   
   def join():Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
-    val speak = (default ? Join()).asPromise
-    println(speak)
+    val speak = (default !? Join())
     
-    speak.map {
+    speak match {
       case (fci : FirstConnectionInfo, channel : Enumerator[JsValue]) => 
         val id = fci.myBody.id
         
@@ -128,20 +130,22 @@ object MapRoom {
         
         val msg = MapRoom.Msg("first_connect", FirstConnectionInfo.writes(fci))
         val channelWithFirstMsg = Enumerator[JsValue](msg).andThen(channel)
-        (iteratee, channelWithFirstMsg)
+        Akka.future{ (iteratee, channelWithFirstMsg) }
     }
 
   }
  
 }
 
-class MapRoom extends Actor {
+class MapRoom(mapName : String) extends Actor {
   case class BodyInter(var b : Body, channel : PushEnumerator[JsValue])
   
   var members = Map.empty[String, BodyInter]
   val myMap = MapSurface.map1
   
-  def receive = {
+  def act() = {
+    loop {
+    receive {
     
     case Join() => {
       println(MapSurface.map1)
@@ -185,7 +189,7 @@ class MapRoom extends Actor {
       members = members - id
       notifyAll("quit", Body.writes(b))
     }
-    
+  }}
   }
   
   def notifyAll(kind: String, data : JsValue) {
