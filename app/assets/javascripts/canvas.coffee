@@ -23,9 +23,6 @@ myCanvas_draw = (cv) ->
        cv.size(Math.floor($(window).width() / 1.5), Math.floor($(window).height() / 1.3) )
        cv.background(255)
        
-       @maxX = Math.floor(cv.width / step) - 1
-       @maxY = Math.floor(cv.height / step) - 1
-       
     cv.draw = () ->
         [sizeX, sizeY] = mapSize
         cv.size(sizeX * step, sizeY * step)
@@ -65,6 +62,7 @@ myCanvas_draw = (cv) ->
 
     cv.keyPressed = () ->
         [curX, curY] = listElems[myId]
+        [maxX, maxY] = mapSize
         
         if cv.keyCode is 37 #left
             curX -= 1
@@ -74,20 +72,17 @@ myCanvas_draw = (cv) ->
             curY -= 1
         if cv.keyCode is 40 #down
             curY += 1
-
         
         
         curX = Math.max(0, curX)
         curY = Math.max(0, curY)
-        curX = Math.min(@maxX, curX)
-       	curY = Math.min(@maxY, curY)
+        curX = Math.min(curX, maxX - 1)
+        curY = Math.min(curY, maxY - 1)
         
         listElems[myId] = [curX, curY] 
         log "myCanvasFct( [#{curX}, #{curY}] )"
         myCanvasFct( [curX, curY] )
         
-        #console.log "#{@curX}x#{@curY} (on max : #{@maxX}x#{@maxY} )"
-
 
 $(document).ready ->
     try
@@ -110,6 +105,7 @@ $(document).ready ->
             switch type
               when "first_connect"
                 map = data["map"]
+                console.log data
                 mapSize = [map["w"], map["h"]]
                 mapContent = map["content"]
                 
@@ -129,6 +125,11 @@ $(document).ready ->
                 
               when "quit"
                 delete listElems[data["id"]]
+              when "disconnected"
+                window.listElems = {}
+                myId = ""
+                mapContent = null
+                mapSize = [1, 1]
               else
                 console.log "no handler for that : "
                 console.log evt.data
