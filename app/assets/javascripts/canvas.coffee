@@ -10,13 +10,54 @@ class SquarePlace
         @pos_y += y
 
 
+
+
 log "creating myCanvasFct"
+ms = new MapSurface()
+
 myCanvasFct = ([x, y]) -> 
-window.listElems = {}
+listElems = {}
 myId = ""
 
+isInitalized = false
+
 mapContent = null
-mapSize = [0, 0]
+mapSize = [1, 1]
+
+moveTo = (where) ->
+  return if not isInitalized
+  
+  [curX, curY] = listElems[myId]
+  [maxX, maxY] = mapSize
+  
+  switch where
+    when "left" then curX -= 1
+    when "right" then curX += 1
+    when "up" then curY -= 1
+    when "down" then curY += 1
+    else return
+    
+  curX = Math.max(0, curX)
+  curY = Math.max(0, curY)
+  curX = Math.min(curX, maxX - 1)
+  curY = Math.min(curY, maxY - 1)
+        
+  listElems[myId] = [curX, curY] 
+  log "myCanvasFct( [#{curX}, #{curY}] )"
+  myCanvasFct( [curX, curY] )
+
+
+autoMove = (moves, autoRest) => 
+  console.log "autoMove(#{moves}, #{autoRest})"
+  if moves.length == 0
+    [move, time] = autoRest
+  else
+    [move, time] = moves[0]
+    moves = moves[1..]
+  
+  moveTo(move)
+  nextFct = () -> autoMove(moves, autoRest)
+  setTimeout(nextFct, time)
 
 myCanvas_draw = (cv) ->
     cv.setup = () ->
@@ -35,7 +76,8 @@ myCanvas_draw = (cv) ->
         for y in [1..cv.height] by step
             cv.line(0, y, cv.width, y)
 
-        #drawing map floor            
+        return if not isInitalized
+        #drawing map floor
         [w, h] = mapSize 
         for x in [0..w-1]
           for y in [0..h-1]
@@ -58,37 +100,19 @@ myCanvas_draw = (cv) ->
               cv.rect(step * x + 1, step * y + 1, step, step)
               
           
-
-
     cv.keyPressed = () ->
-        [curX, curY] = listElems[myId]
-        [maxX, maxY] = mapSize
-        
-        if cv.keyCode is 37 #left
-            curX -= 1
-        if cv.keyCode is 39 #right
-            curX += 1
-        if cv.keyCode is 38 #up
-            curY -= 1
-        if cv.keyCode is 40 #down
-            curY += 1
-        
-        
-        curX = Math.max(0, curX)
-        curY = Math.max(0, curY)
-        curX = Math.min(curX, maxX - 1)
-        curY = Math.min(curY, maxY - 1)
-        
-        listElems[myId] = [curX, curY] 
-        log "myCanvasFct( [#{curX}, #{curY}] )"
-        myCanvasFct( [curX, curY] )
+      switch cv.keyCode
+        when 37 then moveTo("left")
+        when 39 then moveTo("right")
+        when 38 then moveTo("up")
+        when 40 then moveTo("down")
         
 
 $(document).ready ->
     try
         canvas = document.getElementById "myCanvas"
         console.log canvas
-        processing = () -> new Processing($("canvas")[0], myCanvas_draw)
+        processing = new Processing($("canvas")[0], myCanvas_draw)
         
         console.log "toto"
         
@@ -116,7 +140,8 @@ $(document).ready ->
                 for el in data["other"]
                   listElems[el["id"]] = [el["x"], el["y"]]
                 
-                processing = processing()
+                isInitalized = true
+                
               when "move"
                 listElems[data["id"]] = [data["x"], data["y"]]
                 
@@ -125,11 +150,14 @@ $(document).ready ->
                 
               when "quit"
                 delete listElems[data["id"]]
+                
               when "disconnected"
                 window.listElems = {}
                 myId = ""
                 mapContent = null
                 mapSize = [1, 1]
+                isInitalized = false
+                
               else
                 console.log "no handler for that : "
                 console.log evt.data
@@ -150,6 +178,8 @@ $(document).ready ->
         )
         
         $.processing = processing
+        
+        autoMove([], ["right", 1000])
         
     catch error
         console.log error
