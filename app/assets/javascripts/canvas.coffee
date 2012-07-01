@@ -31,7 +31,7 @@ mapSize = [1, 1]
 class MapSurface
   constructor: () ->
     this.init_empty()
-    @canvasFct = () ->
+    @canvasFct = (id, [x, y]) ->
   
   setCanvasFct: (fct) -> @canvasFct = fct
   
@@ -66,9 +66,7 @@ class MapSurface
         
     @listElems[@id] = [curX, curY] 
     log "myCanvasFct( [#{curX}, #{curY}] )"
-    @canvasFct [curX, curY]
-  
-  moveTo: ([x, y]) -> @listElems[@id] = [x, y]
+    @canvasFct(@id, [curX, curY])
 
   getAt: ([x, y]) ->
     return "None" if not @isInit
@@ -93,16 +91,16 @@ ms = new MapSurface()
 
 
 
-autoMove = (moves, autoRest) => 
-  console.log "autoMove(#{moves}, #{autoRest})"
+autoMove = (moves, looping) =>
   if moves.length == 0
-    [move, time] = autoRest
+    [move, time] = looping[0]
+    looping = looping[1..] + looping[0..0]
   else
     [move, time] = moves[0]
     moves = moves[1..]
   
   ms.moveAction(move)
-  nextFct = () -> autoMove(moves, autoRest)
+  nextFct = () -> autoMove(moves, looping)
   setTimeout(nextFct, time)
 
 myCanvas_draw = (cv) ->
@@ -161,16 +159,17 @@ $(document).ready ->
         ws.onopen = (evt) -> console.log evt
         ws.onclose = (evt) -> console.log evt
         ws.onmessage = (evt) ->
+            console.log "reception of : ", evt.data
             msgJson = JSON.parse(evt.data)
             [type, data] = [msgJson["type"], msgJson["data"]]
-            console.log evt.data
+            
             switch type
               when "first_connect"
                 [map, me, other] = [data["map"], data["me"], data["other"]]
                 ms.setMap(map["content"], [map["w"], map["h"]])
                 ms.addMe(me["id"], [me["x"], me["y"]])
                 ms.setPlayer(el["id"], [el["x"], el["y"]]) for el in other
-              when "move" then ms.moveTo([data["x"], data["y"]])
+              when "setPlayer" then ms.setPlayer(data["id"], [data["x"], data["y"]])
               when "join"then ms.setPlayer(data["id"], [data["x"], data["y"]])
               when "quit" then ms.rmPlayer(data["id"])
               when "disconnected" then ms.init_empty()
@@ -180,22 +179,16 @@ $(document).ready ->
 
         ws.onerror = (evt) -> console.log evt
         
-        ms.setCanvasFct ([x, y]) ->
-            res =  JSON.stringify({type:'move', data: {id:myId, x:x, y:y}})
+        ms.setCanvasFct (id, [x, y]) ->
+            res =  JSON.stringify({type:'move', data: {id:id, x:x, y:y}})
             console.log("sending : #{res}")
             ws.send(res)
         
         i = 0
-        $("button").button().click( () ->
-            console.log "click and send message"
-            ws.send("click " + i)
-            i += 1
-            processing.exit()
-        )
         
         $.processing = processing
         
-        #autoMove([], ["right", 1000])
+        autoMove([], [["right", 1000], ["up", 1000]])
         
     catch error
         console.log error

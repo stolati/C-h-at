@@ -67,7 +67,7 @@ object Body {
   //1 mean block
   //2 men special => see at the end
   def map1 = fromHumain("""
-20000000000000000000J
+00000000000000000000J
 0X000X0XXX0XXXX00000J
 0XX0XX00X00X00000000J
 0X0X0X00X00X00000000J
@@ -84,23 +84,50 @@ object Body {
 00000000000000000000J
 0XX000XX00X00X000000J
 0X0X0X00X0XX0X000000J
-0X0X0XXXX0X0XX000000J
-0XX00X00X0X00X000000J
-00000000000000000000J
-JJJJJJJJJJJJJJJJJJJJJ
+0X0X0XXXX0X0XX00X00XJ
+0XX00X00X0X00X00X00XJ
+0000000000000000X00XJ
+JJJJJJJJJJJJJJJJJ22JJ
   """, Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Body("", 6, 6)), '2' -> FloorMapJump("map2", Some(1, 1) )))
   
 
   def map2 = fromHumain("""
-10000000000000000000
-00000000000000000000
-00000000000000000000
-""", Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Body("", 1, 1)), '1' -> FloorMapJump("map1", None) ))
+00000000000000000003
+00000000000000000003
+00000000000000000003
+""", Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Body("", 1, 1)), '3' -> FloorMapJump("map3", None) ))
   
+
+  def map3 = fromHumain("""
+000
+X0X
+101
+101
+101
+X0X
+101
+101
+101
+X0X
+101
+101
+101
+X0X
+101
+101
+101
+X0X
+101
+111
+""", Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Body("", 1, 1)), '1' -> FloorMapJump("map1", Some(0, 0) )))
+  
+
+
 
   def names = Map(
 		"map1" -> MapSurface.map1,
-		"map2" -> MapSurface.map2
+		"map2" -> MapSurface.map2,
+		"map3" -> MapSurface.map3
   )
   
 }

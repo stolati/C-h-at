@@ -15,6 +15,117 @@ import scala.actors.Actor._
 import models.MapSurface._
 
 
+object ClientActor {
+  
+  case class JsFromClient(kind : String, data : JsValue)
+  case class ClientClosed()
+  
+  def sendJsValue(js : JsValue) = {
+    
+    
+  }
+  
+  
+  def join(name : String, pos : Option[(Int, Int)]):Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
+    
+    val channel = Enumerator.imperative[JsValue]()
+    val map = MapRoom.maps(name)
+    val ca = new ClientActor(MapRoom.maps(name), channel)
+    
+    ca ! GoJoin(map, pos)
+    
+    val iteratee = Iteratee.foreach[JsValue]{ event =>
+      val (kind, data) = ((event \ "type").as[String], (event \ "data"))
+      printf("from client : %s = %s\n", kind, data)
+      ca ! JsFromClient(kind, data)
+    }.mapDone { _ => 
+      ca ! ClientClosed()
+    }
+    
+    ca.start()
+    Akka.future{ (iteratee, channel) }
+    
+    //val speak = (curMap !? JoinInit(None))
+    
+    //speak match {
+    //  case JoinInitRes(fci, channel) => 
+    //    val id = fci.myBody.id
+    // /   println("joined, with id : ", id)
+    //    
+    //    println("connected launched")
+    //    // Create an Iteratee to consume the feed
+    //    val iteratee = Iteratee.foreach[JsValue] { event =>
+    //      receptionWS(event, id, curMap)
+    //    }.mapDone { _ =>
+    //      curMap ! Quit(id)
+    //    }
+    //    
+    //    val msg = MapRoom.Msg("first_connect", FirstConnectionInfo.writes(fci))
+    //    val channelWithFirstMsg = Enumerator[JsValue](msg).andThen(channel)
+    //    Akka.future{ (iteratee, channelWithFirstMsg) }
+    //}
+
+  }
+}
+
+
+class ClientActor(var curMap : MapRoom, channel : PushEnumerator[JsValue]) extends Actor {
+
+  var id : String = ""
+  
+  
+  def toCli(kind : String, data : JsValue) = {
+    val jsStruct = JsObject(Seq("type" -> JsString(kind), "data" -> data))
+    printf("to client : %s\n", jsStruct)
+    this.channel.push( jsStruct )
+  }
+   
+  def act = {
+    loop { receive {
+      
+      case GoJoin(cm, pos) =>
+        if(curMap != cm || id != ""){
+          this.toCli("disconnected", JsNull)
+          curMap ! Quit(id)
+        }
+        
+        this.curMap = cm
+        this.curMap ! IJoin(pos)
+        
+      case fc : FirstConnectionInfo =>
+          this.id = fc.myBody.id
+          this.toCli("first_connect", FirstConnectionInfo.writes(fc))
+
+      case HasJoined(b) => this.toCli("join", Body.writes(b))
+      case SomeoneQuit(b) => this.toCli("quit", Body.writes(b))
+      case Move(b) => this.toCli("setPlayer", Body.writes(b))
+
+      case ClientActor.ClientClosed() =>
+        curMap ! Quit(id)
+        println("quitting")
+        exit
+
+      case ClientActor.JsFromClient("move", b) => curMap ! Move(Body.reads(b))
+        
+        
+      
+      case x : Any => println("ClientActor receive : ", x)
+        
+      }
+    }
+    
+  }
+
+}
+
+
+
+
+
+
+
+
+
 object MapRoom {
 
   lazy val maps = {
@@ -32,7 +143,6 @@ object MapRoom {
   def getNextId = { id += 1 ; id }
 
   def getInitBody(pos : Option[(Int, Int)]) = {
-    println("getInitBody%s", pos)
     val defx = 1 //random.nextInt(10)
     val defy = 1 //random.nextInt(10)
     val (x, y) = pos match {
@@ -45,111 +155,49 @@ object MapRoom {
  
   def Msg(kind : String, data : JsValue) = JsObject(Seq("type" -> JsString(kind), "data" -> data))
   
-  def receptionWS(event : JsValue, id : String, curMap : MapRoom) = { 
-      println("reception of : " + event.toString())
-      curMap ! ((event \ "type").as[String] match {
-          case "move" => Move(id, Body.reads(event \ "data"))
-      })
-  }
-  
-  def join(name : String):Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
-    val curMap = maps(name)
-    val speak = (curMap !? Join(None))
-    
-    speak match {
-      case (fci : FirstConnectionInfo, channel : Enumerator[JsValue]) => 
-        val id = fci.myBody.id
-        
-        println("connected launched")
-        // Create an Iteratee to consume the feed
-        val iteratee = Iteratee.foreach[JsValue] { event =>
-          receptionWS(event, id, curMap)
-        }.mapDone { _ =>
-          curMap ! Quit(id)
-        }
-        
-        val msg = MapRoom.Msg("first_connect", FirstConnectionInfo.writes(fci))
-        val channelWithFirstMsg = Enumerator[JsValue](msg).andThen(channel)
-        Akka.future{ (iteratee, channelWithFirstMsg) }
-    }
-
-  }
- 
 }
 
 
 class MapRoom(myMap : MapSurface) extends Actor {
-  case class BodyInter(var b : MapSurface.Body, channel : PushEnumerator[JsValue])
-  case class JoinFromMap(bi : BodyInter, pos : Option[(Int, Int)])
-  
+  case class BodyInter(var b : MapSurface.Body, actor : OutputChannel[Any])
+
   var members = Map.empty[String, BodyInter]
+  
   
   def rootMove(b : MapSurface.Body) {
      members(b.id).b = b
-     notifyAll("move", Body.writes(b))
+     toAll( Move(b) )
   }
   
   
   def act() = {
     loop {
     receive {
-      
-      
-      case JoinFromMap(BodyInter(b, channel), pos) => {
-                  println("begin of JoinFromMap")
-      
-      val bi = BodyInter(
-    	MapRoom.getInitBody(pos),
-    	channel
-      )
-      
-      val fci = FirstConnectionInfo(bi.b, members.values.toSeq.map( _.b), myMap)
-      
-      members = members + (bi.b.id -> bi)
-      
-      println("members added")
+      case IJoin(pos) =>
+        val bi = BodyInter(MapRoom.getInitBody(pos), sender)
+        sender ! FirstConnectionInfo(bi.b, members.values.toSeq.map(_.b), myMap)
+        
+        members = members + (bi.b.id -> bi)
+        toAll( HasJoined(bi.b) )
+        
+      case Quit(id) =>
+        try {
+        	val b = members(id).b
+        	members = members - id
+        	toAll( SomeoneQuit(b) )
+        } catch {
+          case _ => println("in quitting, already not here")
+        }
 
-      val msg = MapRoom.Msg("first_connect", FirstConnectionInfo.writes(fci))
-      println("msg = %s, ", msg)
-      channel.push(msg) 
+      case Move(cli_b) =>
+        
+        val id = cli_b.id
+        val member = members(id)
+        val old_b = member.b
+        val actor = member.actor
       
-      notifyAll("join", Body.writes(fci.myBody))
-    }
-    
-    case Join(pos) => {
-      
-      println(MapSurface.map1)
-      
-      val bi = BodyInter(
-    	MapRoom.getInitBody(pos),
-    	Enumerator.imperative[JsValue]()
-      )
-      
-      val fci = FirstConnectionInfo(bi.b, members.values.toSeq.map( _.b), myMap)
-      
-      members = members + (bi.b.id -> bi)
-
-      sender ! (fci, bi.channel)
-      notifyAll("join", Body.writes(fci.myBody))
-    }
-    
-    
-    
-    case Move(id, cli_b) => {
-      assert(id == cli_b.id)
-      
-      val member = members(id)
-      val old_b = member.b
-      val channel = member.channel
-      
-      println("###############################")
-      printf("trying to move to %s\n", cli_b)
       val moveStepValid = old_b.distanceTo(cli_b) == 1
-      printf("moveStep = %s\n", old_b.distanceTo(cli_b))
-      printf("moveStepValid = %s\n", moveStepValid)
       val isInside = myMap.isInside(cli_b)
-      printf("isInside = %s\n", isInside)
-      println("###############################")
 
       
       if(moveStepValid && isInside)
@@ -158,43 +206,33 @@ class MapRoom(myMap : MapSurface) extends Actor {
 	    case Block() => rootMove(old_b)
 	    case FloorLocalJump(b) => rootMove(old_b.moveTo(b))
         case FloorMapJump(mapName, pos) =>
-          val newMap = MapRoom.maps(mapName)
-          
-          member.channel.push(MapRoom.Msg("disconnected", JsNull)) 
-          notifyAll("quit", Body.writes(old_b))
-          
+          actor ! GoJoin(MapRoom.maps(mapName), pos)
           members = members - id
-          println("launching JoinFromMap")
-          newMap ! JoinFromMap(member, pos)
-          
-          //rootMove(old_b)
+          toAll( SomeoneQuit(old_b) ) //can be to the ClientActor to do this, what do you think ?
       } else {
           rootMove(old_b)
       }
-    }
 
-    case Quit(id) => {
-      val b = members(id).b
-      members = members - id
-      notifyAll("quit", Body.writes(b))
-    }
+      case x : Any => println("MapRoom receive : ", x)
   }}
   }
   
-  def notifyAll(kind: String, data : JsValue) {
-    println( Seq("notifyAll : ", kind , " => ", data).mkString("") )
-    
-    members.foreach { 
-      case (_, BodyInter(_, channel)) => channel.push(MapRoom.Msg(kind, data))
-    }
-  }
-  
+  def toAll(e : Any) = members.foreach { case (_, BodyInter(_, actor)) => actor ! e }
+
 }
 
 
 //internal messages
-case class Join(pos : Option[(Int, Int)])
-case class Move(id : String, b : MapSurface.Body)
+case class GoJoin(mr : MapRoom, pos : Option[(Int, Int)])
+case class IJoin(pos : Option[(Int, Int)])
+
+case class HasJoined(b : MapSurface.Body)
+case class SomeoneQuit(b : MapSurface.Body)
+
+
+case class JoinInit(pos : Option[(Int, Int)])
+case class JoinInitRes(fci : FirstConnectionInfo, channel : Enumerator[JsValue])
+case class Move(b : MapSurface.Body)
 case class Quit(stringId: String)
 
 
