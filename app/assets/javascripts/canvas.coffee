@@ -2,6 +2,14 @@
 step = 20
 window.log = console.log
 
+Colors = #enumerator of rgb
+  white : [255, 255, 255]
+  black : [0  , 0  , 0  ]
+  green : [0  , 255, 0  ]
+  red :   [255, 0  , 0  ]
+  blue :  [0  , 0  , 255]
+
+
 class SquarePlace
     constructor: (@pos_x, @pos_y) ->
 
@@ -9,13 +17,9 @@ class SquarePlace
         @pos_x += x
         @pos_y += y
 
-
-
-
-log "creating myCanvasFct"
-ms = new MapSurface()
-
+#old stuff to delete
 myCanvasFct = ([x, y]) -> 
+
 listElems = {}
 myId = ""
 
@@ -24,27 +28,69 @@ isInitalized = false
 mapContent = null
 mapSize = [1, 1]
 
-moveTo = (where) ->
-  return if not isInitalized
+class MapSurface
+  constructor: () ->
+    this.init_empty()
+    @canvasFct = () ->
   
-  [curX, curY] = listElems[myId]
-  [maxX, maxY] = mapSize
+  setCanvasFct: (fct) -> @canvasFct = fct
   
-  switch where
-    when "left" then curX -= 1
-    when "right" then curX += 1
-    when "up" then curY -= 1
-    when "down" then curY += 1
-    else return
+  init_empty: () ->
+    console.log "init_empty"
+    @listElems = {}
+    @id = ""
+    @isInit = false
+    @mapContent = null
+    @mapSize = [1, 1]
+  
+  setMap: (data, [w, h]) ->
+    @mapSize = [w, h]
+    @mapContent = data
+    @isInit = true
+
+  moveAction: (where) ->
+    return if not @isInit
     
-  curX = Math.max(0, curX)
-  curY = Math.max(0, curY)
-  curX = Math.min(curX, maxX - 1)
-  curY = Math.min(curY, maxY - 1)
+    [curX, curY] = @listElems[@id]
+    [maxX, maxY] = @mapSize
+  
+    switch where
+      when "left"  then curX -= 1
+      when "right" then curX += 1
+      when "up"    then curY -= 1
+      when "down"  then curY += 1
+      else return
+    
+    curX = Math.min( Math.max(0, curX), maxX - 1)
+    curY = Math.min( Math.max(0, curY), maxY - 1)
         
-  listElems[myId] = [curX, curY] 
-  log "myCanvasFct( [#{curX}, #{curY}] )"
-  myCanvasFct( [curX, curY] )
+    @listElems[@id] = [curX, curY] 
+    log "myCanvasFct( [#{curX}, #{curY}] )"
+    @canvasFct [curX, curY]
+  
+  moveTo: ([x, y]) -> @listElems[@id] = [x, y]
+
+  getAt: ([x, y]) ->
+    return "None" if not @isInit
+    
+    res = switch @mapContent[y][x]
+      when "F" then "Floor"
+      when "B" then "Block"
+
+    for el_id, [el_x, el_y] of @listElems
+      if x != el_x or y != el_y then continue
+      if el_id == @id then return "Me"
+      return "Other_player"
+    
+    res
+  
+  setPlayer: (id, [x, y]) -> @listElems[id] = [x, y]
+  rmPlayer: (id) -> delete @listElems[id]
+  addMe: (id, [x, y]) -> [@id, @listElems[id]] = [id, [x, y]]
+
+  
+ms = new MapSurface()
+
 
 
 autoMove = (moves, autoRest) => 
@@ -55,7 +101,7 @@ autoMove = (moves, autoRest) =>
     [move, time] = moves[0]
     moves = moves[1..]
   
-  moveTo(move)
+  ms.moveAction(move)
   nextFct = () -> autoMove(moves, autoRest)
   setTimeout(nextFct, time)
 
@@ -63,49 +109,41 @@ myCanvas_draw = (cv) ->
     cv.setup = () ->
        cv.size(Math.floor($(window).width() / 1.5), Math.floor($(window).height() / 1.3) )
        cv.background(255)
-       
+
     cv.draw = () ->
-        [sizeX, sizeY] = mapSize
+        [sizeX, sizeY] = ms.mapSize
         cv.size(sizeX * step, sizeY * step)
         cv.background(255)
         cv.stroke(50)
-
+        
         #drawing 5 per 5 cases lines
         for x in [1..cv.width] by step
             cv.line(x, 0, x, cv.height)	
         for y in [1..cv.height] by step
             cv.line(0, y, cv.width, y)
 
-        return if not isInitalized
         #drawing map floor
-        [w, h] = mapSize 
+        [w, h] = ms.mapSize
+
         for x in [0..w-1]
           for y in [0..h-1]
-            switch mapContent[y][x]
-              when "F"
-                cv.fill(0, 0, 0)
-              when "B"
-                cv.fill(255, 255, 255)
-                
-            cv.rect(step * x + 1, step * y + 1, step, step)
+            [r, g, b] = switch ms.getAt([x, y])
+              when "None" then Colors.blue
+              when "Floor" then Colors.black
+              when "Block" then Colors.white
+              when "Me" then Colors.red
+              when "Other_player" then Colors.green
+              else Colors.blue
             
-        #printing of users
-        for id, [x, y] of listElems
-              if id == myId
-                  cv.fill(255, 0, 0) # red
-                  cv.stroke(100)
-              else
-                  cv.fill(0, 255, 0) # green
-                  cv.stroke(255)
-              cv.rect(step * x + 1, step * y + 1, step, step)
-              
+            cv.fill(r, g, b)
+            cv.rect(step *x + 1, step * y + 1, step, step)
           
     cv.keyPressed = () ->
       switch cv.keyCode
-        when 37 then moveTo("left")
-        when 39 then moveTo("right")
-        when 38 then moveTo("up")
-        when 40 then moveTo("down")
+        when 37 then ms.moveAction("left")
+        when 39 then ms.moveAction("right")
+        when 38 then ms.moveAction("up")
+        when 40 then ms.moveAction("down")
         
 
 $(document).ready ->
@@ -125,46 +163,24 @@ $(document).ready ->
         ws.onmessage = (evt) ->
             msgJson = JSON.parse(evt.data)
             [type, data] = [msgJson["type"], msgJson["data"]]
-            #console.log evt.data
+            console.log evt.data
             switch type
               when "first_connect"
-                map = data["map"]
-                console.log data
-                mapSize = [map["w"], map["h"]]
-                mapContent = map["content"]
-                
-                me = data["me"]
-                myId = me["id"]
-                listElems[myId] = [me["x"], me["y"]]
-                
-                for el in data["other"]
-                  listElems[el["id"]] = [el["x"], el["y"]]
-                
-                isInitalized = true
-                
-              when "move"
-                listElems[data["id"]] = [data["x"], data["y"]]
-                
-              when "join"
-                listElems[data["id"]] = [data["x"], data["y"]]
-                
-              when "quit"
-                delete listElems[data["id"]]
-                
-              when "disconnected"
-                window.listElems = {}
-                myId = ""
-                mapContent = null
-                mapSize = [1, 1]
-                isInitalized = false
-                
+                [map, me, other] = [data["map"], data["me"], data["other"]]
+                ms.setMap(map["content"], [map["w"], map["h"]])
+                ms.addMe(me["id"], [me["x"], me["y"]])
+                ms.setPlayer(el["id"], [el["x"], el["y"]]) for el in other
+              when "move" then ms.moveTo([data["x"], data["y"]])
+              when "join"then ms.setPlayer(data["id"], [data["x"], data["y"]])
+              when "quit" then ms.rmPlayer(data["id"])
+              when "disconnected" then ms.init_empty()
               else
                 console.log "no handler for that : "
                 console.log evt.data
 
         ws.onerror = (evt) -> console.log evt
         
-        myCanvasFct = ([x, y]) ->
+        ms.setCanvasFct ([x, y]) ->
             res =  JSON.stringify({type:'move', data: {id:myId, x:x, y:y}})
             console.log("sending : #{res}")
             ws.send(res)
@@ -179,7 +195,7 @@ $(document).ready ->
         
         $.processing = processing
         
-        autoMove([], ["right", 1000])
+        #autoMove([], ["right", 1000])
         
     catch error
         console.log error
