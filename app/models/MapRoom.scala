@@ -13,79 +13,28 @@ import scala.actors._
 import scala.actors.Actor._
 
 import models.MapSurface._
+import models.ClientLink._
 
 
-object ClientActor {
-  
-  case class JsFromClient(kind : String, data : JsValue)
+class ClientActor(var curMap : MapRoom, channel : ClientLink) extends Actor {
   case class ClientClosed()
+  case class JsFromClient(kind : String, data : JsValue)
   
-  def sendJsValue(js : JsValue) = {
-    
-    
-  }
-  
-  
-  def join(name : String, pos : Option[(Int, Int)]):Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
-    
-    val channel = Enumerator.imperative[JsValue]()
-    val map = MapRoom.maps(name)
-    val ca = new ClientActor(MapRoom.maps(name), channel)
-    
-    ca ! GoJoin(map, pos)
-    
-    val iteratee = Iteratee.foreach[JsValue]{ event =>
-      val (kind, data) = ((event \ "type").as[String], (event \ "data"))
-      printf("from client : %s = %s\n", kind, data)
-      ca ! JsFromClient(kind, data)
-    }.mapDone { _ => 
-      ca ! ClientClosed()
-    }
-    
-    ca.start()
-    Akka.future{ (iteratee, channel) }
-    
-    //val speak = (curMap !? JoinInit(None))
-    
-    //speak match {
-    //  case JoinInitRes(fci, channel) => 
-    //    val id = fci.myBody.id
-    // /   println("joined, with id : ", id)
-    //    
-    //    println("connected launched")
-    //    // Create an Iteratee to consume the feed
-    //    val iteratee = Iteratee.foreach[JsValue] { event =>
-    //      receptionWS(event, id, curMap)
-    //    }.mapDone { _ =>
-    //      curMap ! Quit(id)
-    //    }
-    //    
-    //    val msg = MapRoom.Msg("first_connect", FirstConnectionInfo.writes(fci))
-    //    val channelWithFirstMsg = Enumerator[JsValue](msg).andThen(channel)
-    //    Akka.future{ (iteratee, channelWithFirstMsg) }
-    //}
-
-  }
-}
-
-
-class ClientActor(var curMap : MapRoom, channel : PushEnumerator[JsValue]) extends Actor {
-
   var id : String = ""
   
+  //link to channel
+  channel.setSend { (k : String, d : JsValue) => this ! JsFromClient(k, d); null }
+  channel.setEnd { () => this ! ClientClosed(); null }
+
+  def initOn(map : MapRoom, pos : Option[(Int, Int)]) = this ! GoJoin(map, pos)
   
-  def toCli(kind : String, data : JsValue) = {
-    val jsStruct = JsObject(Seq("type" -> JsString(kind), "data" -> data))
-    printf("to client : %s\n", jsStruct)
-    this.channel.push( jsStruct )
-  }
-   
   def act = {
     loop { receive {
       
       case GoJoin(cm, pos) =>
         if(curMap != cm || id != ""){
-          this.toCli("disconnected", JsNull)
+          
+          channel.push("disconnected")
           curMap ! Quit(id)
         }
         
@@ -94,21 +43,19 @@ class ClientActor(var curMap : MapRoom, channel : PushEnumerator[JsValue]) exten
         
       case fc : FirstConnectionInfo =>
           this.id = fc.myBody.id
-          this.toCli("first_connect", FirstConnectionInfo.writes(fc))
+          channel.push("first_connect", FirstConnectionInfo.writes(fc))
 
-      case HasJoined(b) => this.toCli("join", Body.writes(b))
-      case SomeoneQuit(b) => this.toCli("quit", Body.writes(b))
-      case Move(b) => this.toCli("setPlayer", Body.writes(b))
+      case HasJoined(b) => channel.push("join", Body.writes(b))
+      case SomeoneQuit(b) => channel.push("quit", Body.writes(b))
+      case Move(b) => channel.push("setPlayer", Body.writes(b))
 
-      case ClientActor.ClientClosed() =>
+      case ClientClosed() =>
         curMap ! Quit(id)
-        println("quitting")
+
         exit
 
-      case ClientActor.JsFromClient("move", b) => curMap ! Move(Body.reads(b))
-        
-        
-      
+      case JsFromClient("move", b) => curMap ! Move(Body.reads(b))
+
       case x : Any => println("ClientActor receive : ", x)
         
       }
@@ -198,7 +145,7 @@ class MapRoom(myMap : MapSurface) extends Actor {
       
       val moveStepValid = old_b.distanceTo(cli_b) == 1
       val isInside = myMap.isInside(cli_b)
-
+ 
       
       if(moveStepValid && isInside)
         myMap.getAt(cli_b) match {
@@ -209,6 +156,11 @@ class MapRoom(myMap : MapSurface) extends Actor {
           actor ! GoJoin(MapRoom.maps(mapName), pos)
           members = members - id
           toAll( SomeoneQuit(old_b) ) //can be to the ClientActor to do this, what do you think ?
+          
+        case FloorServerJump(servName, mapName, pos) =>
+          //TODO stuff here
+          println("moving the elemnt to another server")
+          rootMove(old_b)
       } else {
           rootMove(old_b)
       }

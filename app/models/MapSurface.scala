@@ -8,6 +8,7 @@ case class Block() extends MapElement
 
 case class FloorLocalJump(b : MapSurface.Body) extends MapElement
 case class FloorMapJump(name : String, pos : Option[(Int, Int)]) extends MapElement
+case class FloorServerJump(serv_name : String, map_name : String, pos : Option[(Int, Int)]) extends MapElement
 
 
 case class MapSurface(h : Int, w : Int, content : Array[Array[MapElement]]) {
@@ -47,6 +48,7 @@ object Body {
 	           case Block() => JsString("B")
 	           case FloorLocalJump(_) => JsString("F")
 	           case FloorMapJump(_, _ ) => JsString("F")
+	           case FloorServerJump(_, _, _) => JsString("F")
 	        })
 	      ))
 	))
@@ -79,16 +81,23 @@ object Body {
 0X00X0XX0X0X0X000000J
 0XXXX0X0XX0X0X000000J
 0X00X0X00X0XX0000000J
-00000000000000000000J
-00000000000000000000J
-00000000000000000000J
+0000000000000000XXXXJ
+0000000000000000000SJ
+0000000000000000XXXXJ
 0XX000XX00X00X000000J
 0X0X0X00X0XX0X000000J
 0X0X0XXXX0X0XX00X00XJ
 0XX00X00X0X00X00X00XJ
 0000000000000000X00XJ
 JJJJJJJJJJJJJJJJJ22JJ
-  """, Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Body("", 6, 6)), '2' -> FloorMapJump("map2", Some(1, 1) )))
+  """, Map(
+      '0' -> Floor(),
+      'X' -> Block(),
+      'J' -> FloorLocalJump(Body("", 6, 6)),
+      '2' -> FloorMapJump("map2", Some(1, 1) ),
+      'S' -> FloorServerJump("S1", "map3", None)
+      )
+   )
   
 
   def map2 = fromHumain("""
