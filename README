@@ -1,4 +1,19 @@
-This is your new Play 2.0 application
-=====================================
+This is C(h)at, a web HTML5 mmorpg.
+For now, it's nothing fancy, just squares on a blackboard.
 
-This file will be packaged with your application, when using `play dist`.
+Help for developping :
+Last Firefox with :
+ - Firebug : getfirebug.com, (you can get Acebug, eventbug extention on the wiki)
+
+You have to have Play 2.0.2 to use it (play run)
+Once installed : 
+
+play
+  update
+  idea #if you want the idea IDE
+
+
+
+
+#from play
+#This file will be packaged with your application, when using `play dist`.
