@@ -4,6 +4,7 @@ For now, it's nothing fancy, just squares on a blackboard.
 Help for developping :
 Last Firefox with :
  - Firebug : getfirebug.com, (you can get Acebug, eventbug extention on the wiki)
+ - Auto Reload
 
 You have to have Play 2.0.2 to use it (play run)
 Once installed : 
@@ -12,6 +13,9 @@ play
   update
   idea #if you want the idea IDE
 
+For idea, use plugins :
+  scala
+  CoffeeBrew
 
 
 
