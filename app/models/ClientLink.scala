@@ -21,8 +21,8 @@ abstract trait ClientLink {
   case class CONNECTION_END()
   
   def push(kind : String, data : JsValue = JsNull)
-  def setSend(fct : (String, JsValue) => Null) //TODO remove Null and found an Unit that is not necessary
-  def setEnd(fct : () => Null) //TODO see above
+  def setSend(fct : (String, JsValue) => Unit) //TODO remove Null and found an Unit that is not necessary
+  def setEnd(fct : () => Unit) //TODO see above
   
   def push2js(k : String, d : JsValue) = JsObject(Seq("type" -> JsString(k), "data" -> d))
   def js2send(event : JsValue) = ((event \ "type").as[String], event \ "data")
@@ -32,8 +32,8 @@ abstract trait ClientLink {
 
 class WSClientLink extends ClientLink {
   
-  var sendFct : (String, JsValue) => Null = (k : String, d : JsValue) => null
-  var endFct : () => Null = () => null
+  var sendFct : (String, JsValue) => Unit = (k : String, d : JsValue) => {}
+  var endFct : () => Unit = () => {}
   
   val enumChannel = Enumerator.imperative[JsValue]()  
   val iteChannel = Iteratee.foreach[JsValue]{ event =>
@@ -45,8 +45,8 @@ class WSClientLink extends ClientLink {
     endFct() }
   
   override def push(kind : String, data : JsValue = JsNull) = enumChannel.push(push2js(kind, data))
-  override def setSend(f : (String, JsValue) => Null) = {sendFct = f}
-  override def setEnd(f : () => Null) = {endFct = f}
+  override def setSend(f : (String, JsValue) => Unit) = {sendFct = f}
+  override def setEnd(f : () => Unit) = {endFct = f}
   
   def getPromise(): Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = Akka.future{ (iteChannel, enumChannel) }
 }

@@ -23,8 +23,8 @@ class ClientActor(var curMap : MapRoom, channel : ClientLink) extends Actor {
   var id : String = ""
   
   //link to channel
-  channel.setSend { (k : String, d : JsValue) => this ! JsFromClient(k, d); null }
-  channel.setEnd { () => this ! ClientClosed(); null }
+  channel.setSend { (k : String, d : JsValue) => this ! JsFromClient(k, d) }
+  channel.setEnd { () => this ! ClientClosed() }
 
   def initOn(map : MapRoom, pos : Option[(Int, Int)]) = this ! GoJoin(map, pos)
   

@@ -10,4 +10,6 @@ bin
 .project
 .cache
 .settings
+.idea
+.idea_modules
 
