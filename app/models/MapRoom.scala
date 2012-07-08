@@ -141,7 +141,7 @@ class MapRoom(myMap : MapSurface) extends Actor {
         val id = cli_b.id
         val member = members(id)
         val old_b = member.b
-        val actor = member.actor
+        val cli = member.actor
       
       val moveStepValid = old_b.distanceTo(cli_b) == 1
       val isInside = myMap.isInside(cli_b)
@@ -150,17 +150,28 @@ class MapRoom(myMap : MapSurface) extends Actor {
       if(moveStepValid && isInside)
         myMap.getAt(cli_b) match {
         case Floor() => rootMove(cli_b)
-	    case Block() => rootMove(old_b)
-	    case FloorLocalJump(b) => rootMove(old_b.moveTo(b))
+        case Block() => rootMove(old_b)
+        case FloorLocalJump(b) => rootMove(old_b.moveTo(b))
         case FloorMapJump(mapName, pos) =>
-          actor ! GoJoin(MapRoom.maps(mapName), pos)
+          cli ! GoJoin(MapRoom.maps(mapName), pos)
           members = members - id
           toAll( SomeoneQuit(old_b) ) //can be to the ClientActor to do this, what do you think ?
-          
+
         case FloorServerJump(servName, mapName, pos) =>
-          //TODO stuff here
-          println("moving the elemnt to another server")
           rootMove(old_b)
+
+          actor {
+            val servActor = models.Servers.getServerLink(servName)
+            val (x, y)  = pos.getOrElse((0, 0))
+            servActor.push("newPlayer", Body.writes(Body("", x, y)))
+
+
+
+
+            //TODO stuff here
+            println("moving the elemnt to another server")
+
+          }
       } else {
           rootMove(old_b)
       }
@@ -186,6 +197,36 @@ case class JoinInit(pos : Option[(Int, Int)])
 case class JoinInitRes(fci : FirstConnectionInfo, channel : Enumerator[JsValue])
 case class Move(b : MapSurface.Body)
 case class Quit(stringId: String)
+
+
+case class ServerPlayerTransfer(b : MapSurface.Body, mapName : String)
+
+object ServerPlayerTransfer {
+  def writes(spt : ServerPlayerTransfer): JsValue = JsObject(List(
+    "b" -> MapSurface.Body.writes(spt.b),
+    "map" -> JsString(spt.mapName)
+  ))
+
+  def reads(json: JsValue) = ServerPlayerTransfer(
+    MapSurface.Body.reads(json \ ""),
+    (json \ "map").as[String]
+  )
+
+}
+
+
+case class ServerPlayerId(id : String)
+
+object ServerPlayerId {
+  def writes(spi : ServerPlayerId): JsValue = JsObject(List(
+    "id" -> JsString(spi.id)
+  ))
+
+  def reads(json: JsValue) = ServerPlayerId(
+    (json \ "id").as[String]
+  )
+}
+
 
 
 

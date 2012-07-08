@@ -19,10 +19,10 @@ case class MapSurface(h : Int, w : Int, content : Array[Array[MapElement]]) {
 
 object MapSurface {
   case class Body(id : String, x : Int, y : Int) {
-  def moveTo(newX : Int, newY : Int) = Body(id, newX, newY)
-  def moveTo(b : Body) = Body(id, b.x, b.y)
-  def distanceTo(b2 : Body) = scala.math.abs(x - b2.x) + scala.math.abs(y - b2.y)
-}
+    def moveTo(newX : Int, newY : Int) = Body(id, newX, newY)
+    def moveTo(b : Body) = Body(id, b.x, b.y)
+    def distanceTo(b2 : Body) = scala.math.abs(x - b2.x) + scala.math.abs(y - b2.y)
+  }
 
 
 object Body {
@@ -69,7 +69,7 @@ object Body {
   //1 mean block
   //2 men special => see at the end
   def map1 = fromHumain("""
-00000000000000000000J
+0S000000000000000000J
 0X000X0XXX0XXXX00000J
 0XX0XX00X00X00000000J
 0X0X0X00X00X00000000J

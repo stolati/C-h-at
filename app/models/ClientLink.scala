@@ -1,5 +1,13 @@
 package models.ClientLink
 
+//TODO : a big one, change the ClientLink by Actors, they are more on that
+//So we can do case transformation :
+// elem.toJson() => transform into json
+// Elem.fromJson(elem) => get from json => this won't work because elem won't have the elemnt
+// search on the Json stuff to see it
+
+
+
 import play.api.libs.json._
 import play.api.libs.iteratee._
 import play.api.libs.concurrent._

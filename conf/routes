@@ -6,6 +6,8 @@
 GET     /                           controllers.Application.index
 GET     /canvas                     controllers.Canvas.index
 GET     /ws                         controllers.Canvas.ws
+GET     /serv_ui                    controllers.ServerWS.index
+GET     /serv                       controllers.ServerWS.ws
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
