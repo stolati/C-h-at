@@ -1,11 +1,9 @@
 package controllers
 
-import play.api._
 import play.api.mvc._
-import play.api.libs.iteratee._
 import play.api.libs.json._
 import models._
-import models.ClientLink._
+import models.ExternalLink.WebServicePassif
 
 
 object JS_MSG {
@@ -44,14 +42,13 @@ object Canvas extends Controller {
   }
   
   def ws = WebSocket.async[JsValue]{ request =>
-    val cl = new WSClientLink()
-    val map = MapRoom.maps(defaultMapName)
-    
-    //generate the ClientActor
-    val ca = new ClientActor(map, cl)
-    ca.initOn(map, None)
+
+    val ca = new PlayerLink()
+    val cl = new WebServicePassif(ca)
+
+    cl.start()
     ca.start()
-    
+
     cl.getPromise()
   }
 

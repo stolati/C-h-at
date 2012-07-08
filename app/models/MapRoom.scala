@@ -1,66 +1,62 @@
 package models
 
-import play.api._
 import play.api.libs.json._
-import play.api.libs.iteratee._
-import play.api.libs.concurrent._
-import play.api.Play.current
-
 import scala.util.Random
-import java.util.ArrayList
 
-import scala.actors._
-import scala.actors.Actor._
+import actors.{OutputChannel, Actor}
 
 import models.MapSurface._
-import models.ClientLink._
+import models.ExternalLink.ExternalLink._
+
+import models.msg_json.MSG_JSON._
+
+//messages for between PlayerLink and MapSurface
+case class Quit(id : Id)
+case class ChangeMap(mapRoom : MapRoom, pos : Option[Pos])
 
 
-class ClientActor(var curMap : MapRoom, channel : ClientLink) extends Actor {
-  case class ClientClosed()
-  case class JsFromClient(kind : String, data : JsValue)
-  
-  var id : String = ""
-  
-  //link to channel
-  channel.setSend { (k : String, d : JsValue) => this ! JsFromClient(k, d) }
-  channel.setEnd { () => this ! ClientClosed() }
 
-  def initOn(map : MapRoom, pos : Option[(Int, Int)]) = this ! GoJoin(map, pos)
-  
+class PlayerLink() extends Actor {
+
+  var body : Option[Body] = None
+  var mapLink : Option[Actor] = None
+  var wsLink : Option[Actor] = None
+
+  def setWs(actor : Actor) { this.wsLink = Some(actor) }
+
   def act = {
-    loop { receive {
-      
-      case GoJoin(cm, pos) =>
-        if(curMap != cm || id != ""){
-          
-          channel.push("disconnected")
-          curMap ! Quit(id)
-        }
-        
-        this.curMap = cm
-        this.curMap ! IJoin(pos)
-        
-      case fc : FirstConnectionInfo =>
-          this.id = fc.myBody.id
-          channel.push("first_connect", FirstConnectionInfo.writes(fc))
+    //TODO try to find a suitable map
 
-      case HasJoined(b) => channel.push("join", Body.writes(b))
-      case SomeoneQuit(b) => channel.push("quit", Body.writes(b))
-      case Move(b) => channel.push("setPlayer", Body.writes(b))
+    loop {
+      receive {
 
-      case ClientClosed() =>
-        curMap ! Quit(id)
+        /*case ChangeMap(cm, pos) =>
+          if(curMap != cm || id != ""){
 
-        exit
+            channel.push("disconnected")
+            curMap ! Quit(id)
+          }
 
-      case JsFromClient("move", b) => curMap ! Move(Body.reads(b))
+          this.curMap = cm
+          this.curMap ! IJoin(pos)
+        */
 
-      case x : Any => println("ClientActor receive : ", x)
-        
+        case cm : CurrentMap =>
+          this.body = Some(cm.your_body)
+          this.wsLink.get ! cm
+
+        case FROM_LINK(hj : Player_Join) => this.wsLink.get ! hj
+        case FROM_LINK(pq : Player_Quit) => this.wsLink.get ! pq
+        case FROM_LINK(pm : Player_Move) => this.wsLink.get ! pm
+
+        case e : CONNECTION_END =>
+          this.mapLink.get ! Quit(this.body.get.id)
+          exit
+
+        case x : Any => println("ClientActor receive : ", x)
+
       }
     }
-    
   }
 
 }
@@ -89,15 +85,13 @@ object MapRoom {
   var id = 0
   def getNextId = { id += 1 ; id }
 
-  def getInitBody(pos : Option[(Int, Int)]) = {
+  def getInitBody(pos : Pos) = {
     val defx = 1 //random.nextInt(10)
     val defy = 1 //random.nextInt(10)
-    val (x, y) = pos match {
-      case Some((myX : Int, myY : Int)) => (myX, myY)
-      case None => (defx, defy)
-    }
-    //val (x, y) = pos.getOrElse((defx, defy)) //TODO why it don't work
-    Body("id:" + MapRoom.getNextId, x, y)
+    val myX = if(pos.x == -1) { defx } else { pos.x }
+    val myY = if(pos.x == -1) { defy } else { pos.y }
+
+    Body(Id("id:" + MapRoom.getNextId), Id(), Pos(myX, myY))
   }
  
   def Msg(kind : String, data : JsValue) = JsObject(Seq("type" -> JsString(kind), "data" -> data))
@@ -106,39 +100,40 @@ object MapRoom {
 
 
 class MapRoom(myMap : MapSurface) extends Actor {
-  case class BodyInter(var b : MapSurface.Body, actor : OutputChannel[Any])
+  case class BodyInter(var b : Body, actor : OutputChannel[Any])
 
-  var members = Map.empty[String, BodyInter]
+  var members = Map.empty[Id, BodyInter]
   
   
-  def rootMove(b : MapSurface.Body) {
+  def rootMove(b : Body) {
      members(b.id).b = b
-     toAll( Move(b) )
+     toAll( Player_Move(b.id, b.pos) )
   }
   
   
   def act() = {
     loop {
     receive {
-      case IJoin(pos) =>
+
+
+      case Player_Join(id, pos) =>
         val bi = BodyInter(MapRoom.getInitBody(pos), sender)
-        sender ! FirstConnectionInfo(bi.b, members.values.toSeq.map(_.b), myMap)
+        sender ! CurrentMap(bi.b, members.values.toSeq.map(_.b), myMap.toMapSurfaceVisible)
         
         members = members + (bi.b.id -> bi)
-        toAll( HasJoined(bi.b) )
+        toAll( Player_Join(bi.b.id, bi.b.pos) )
         
       case Quit(id) =>
         try {
         	val b = members(id).b
         	members = members - id
-        	toAll( SomeoneQuit(b) )
+        	toAll( Player_Quit(id) )
         } catch {
           case _ => println("in quitting, already not here")
         }
 
-      case Move(cli_b) =>
-        
-        val id = cli_b.id
+      case Player_Move(id, new_pos) =>
+
         val member = members(id)
         val old_b = member.b
         val cli = member.actor
@@ -155,7 +150,7 @@ class MapRoom(myMap : MapSurface) extends Actor {
         case FloorMapJump(mapName, pos) =>
           cli ! GoJoin(MapRoom.maps(mapName), pos)
           members = members - id
-          toAll( SomeoneQuit(old_b) ) //can be to the ClientActor to do this, what do you think ?
+          toAll( Player_Quit(old_b.id) ) //can be to the ClientActor to do this, what do you think ?
 
         case FloorServerJump(servName, mapName, pos) =>
           rootMove(old_b)
@@ -184,60 +179,5 @@ class MapRoom(myMap : MapSurface) extends Actor {
 
 }
 
-
-//internal messages
-case class GoJoin(mr : MapRoom, pos : Option[(Int, Int)])
-case class IJoin(pos : Option[(Int, Int)])
-
-case class HasJoined(b : MapSurface.Body)
-case class SomeoneQuit(b : MapSurface.Body)
-
-
-case class JoinInit(pos : Option[(Int, Int)])
-case class JoinInitRes(fci : FirstConnectionInfo, channel : Enumerator[JsValue])
-case class Move(b : MapSurface.Body)
-case class Quit(stringId: String)
-
-
-case class ServerPlayerTransfer(b : MapSurface.Body, mapName : String)
-
-object ServerPlayerTransfer {
-  def writes(spt : ServerPlayerTransfer): JsValue = JsObject(List(
-    "b" -> MapSurface.Body.writes(spt.b),
-    "map" -> JsString(spt.mapName)
-  ))
-
-  def reads(json: JsValue) = ServerPlayerTransfer(
-    MapSurface.Body.reads(json \ ""),
-    (json \ "map").as[String]
-  )
-
-}
-
-
-case class ServerPlayerId(id : String)
-
-object ServerPlayerId {
-  def writes(spi : ServerPlayerId): JsValue = JsObject(List(
-    "id" -> JsString(spi.id)
-  ))
-
-  def reads(json: JsValue) = ServerPlayerId(
-    (json \ "id").as[String]
-  )
-}
-
-
-
-
-case class FirstConnectionInfo(myBody : MapSurface.Body, otherBody : Seq[MapSurface.Body], ms : MapSurface)
-
-object FirstConnectionInfo {
-	  def writes(fci : FirstConnectionInfo): JsValue = JsObject(List(
-	      "me" -> MapSurface.Body.writes(fci.myBody),
-	      "other" -> JsArray(fci.otherBody.map( Body.writes(_) )),
-	      "map" -> MapSurface.writes(fci.ms)
-	  ))
-}
 
 

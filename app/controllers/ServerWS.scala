@@ -6,29 +6,33 @@ import play.api.libs.iteratee._
 import play.api.libs.json._
 import models._
 import models.ClientLink._
+import models.ExternalLink.WebServicePassif
 
 
 object ServerWS extends Controller {
 
   def index = Action {
-    println("trying it")
+    //println("trying it")
 
-    val conn = Servers.getServerLink("serv01")
-    conn.push("toto_test01")
+    //val conn = Servers.getServerLink("serv01")
+    //conn.push("toto_test01")
 
 
-    println("end trying")
+    //println("end trying")
     Ok(views.html.canvas("!!! quit me !!!"))
   }
 
   def ws = WebSocket.async[JsValue]{ request =>
+    new WebServicePassif(null).getPromise()
 
+    /*
     val cl = new WSClientLink()
 
     cl.setEnd { () => println("end of the server connection") }
     cl.setSend( println("Receiving : ", _, _) )
 
     cl.getPromise()
+    */
   }
 
 

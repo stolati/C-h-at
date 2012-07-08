@@ -1,58 +1,55 @@
 package models
 
 import play.api.libs.json._
+import models.msg_json.MSG_JSON._
+
 
 sealed abstract class MapElement()
 case class Floor() extends MapElement
 case class Block() extends MapElement
 
-case class FloorLocalJump(b : MapSurface.Body) extends MapElement
+case class FloorLocalJump(b : Body) extends MapElement
 case class FloorMapJump(name : String, pos : Option[(Int, Int)]) extends MapElement
 case class FloorServerJump(serv_name : String, map_name : String, pos : Option[(Int, Int)]) extends MapElement
 
 
-case class MapSurface(h : Int, w : Int, content : Array[Array[MapElement]]) {
+
+class MapSurface(h : Int, w : Int, content : Array[Array[MapElement]]) {
   def isInside(b : MapSurface.Body) = ( b.x >= 0 && b.y >= 0 && b.x < w && b.y < h )
   def getAt(b : MapSurface.Body) = content(b.y)(b.x)
+
+  def toMapSurfaceVisible() = MapSurfaceVisible(
+    content.map( line =>
+      line.collect {
+        case Floor() => "F"
+        case Block() => "B"
+        case FloorLocalJump(_) => "F"
+        case FloorMapJump(_, _ ) => "F"
+        case FloorServerJump(_, _, _) => "F"
+      }.map(MapElementVisible(_)).toSeq
+    ).toSeq
+  )
 }
 
 
+case object BodyHelper {
+  def moveTo(bfrom : Body, p : Pos) = Body()
+  def moveTo(bfrom : Body, bto : Body) = {}
+  def distanceTo(b1 : Body, b2 : Body) = {}
+}
+
+
+
 object MapSurface {
+  /*
   case class Body(id : String, x : Int, y : Int) {
     def moveTo(newX : Int, newY : Int) = Body(id, newX, newY)
     def moveTo(b : Body) = Body(id, b.x, b.y)
     def distanceTo(b2 : Body) = scala.math.abs(x - b2.x) + scala.math.abs(y - b2.y)
   }
+  */
 
 
-object Body {
-	def reads(json: JsValue) = Body(
-		(json \ "id").as[String],
-		(json \ "x").as[Int],
-		(json \ "y").as[Int]
-	  )
-	  def writes(b : Body): JsValue = JsObject(List(
-	      "id" -> JsString(b.id),
-	      "x" -> JsNumber(b.x),
-	      "y" -> JsNumber(b.y)
-	  ))
-}
-  
-  
-   def writes(ms : MapSurface): JsValue = JsObject(List(
-	      "h" -> JsNumber(ms.h),
-	      "w" -> JsNumber(ms.w),
-	      "content" -> JsArray(ms.content.map( line =>
-	        JsArray(line.collect {
-	           case Floor() => JsString("F")
-	           case Block() => JsString("B")
-	           case FloorLocalJump(_) => JsString("F")
-	           case FloorMapJump(_, _ ) => JsString("F")
-	           case FloorServerJump(_, _, _) => JsString("F")
-	        })
-	      ))
-	))
-  
   def fromHumain(ground : String, lang : Map[Char, MapElement]) = {
     val content = ground.split('\n').map{_.trim()}.filter(!_.isEmpty()).map{ s =>
       s.map( lang(_) ).toArray
@@ -61,7 +58,7 @@ object Body {
     val h = content.size
     val w = (0 /: content.map{_.size}) { scala.math.max(_, _) }
     
-    MapSurface(h, w, content)
+    new MapSurface(h, w, content)
   }
   
   //represent a mapz
@@ -93,7 +90,7 @@ JJJJJJJJJJJJJJJJJ22JJ
   """, Map(
       '0' -> Floor(),
       'X' -> Block(),
-      'J' -> FloorLocalJump(Body("", 6, 6)),
+      'J' -> FloorLocalJump(Body(Id(), Id(), Pos(6, 6))),
       '2' -> FloorMapJump("map2", Some(1, 1) ),
       'S' -> FloorServerJump("S1", "map3", None)
       )
@@ -104,7 +101,7 @@ JJJJJJJJJJJJJJJJJ22JJ
 00000000000000000003
 00000000000000000003
 00000000000000000003
-""", Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Body("", 1, 1)), '3' -> FloorMapJump("map3", None) ))
+""", Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Body(Id(), Id(), Pos(1, 1))), '3' -> FloorMapJump("map3", None) ))
   
 
   def map3 = fromHumain("""
@@ -128,10 +125,8 @@ X0X
 X0X
 101
 111
-""", Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Body("", 1, 1)), '1' -> FloorMapJump("map1", Some(0, 0) )))
+""", Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Body(Id(), Id(), Pos(1, 1))), '1' -> FloorMapJump("map1", Some(0, 0) )))
   
-
-
 
   def names = Map(
 		"map1" -> MapSurface.map1,

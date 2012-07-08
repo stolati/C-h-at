@@ -5,6 +5,8 @@ import models.ClientLink._
 import play.api.libs.json._
 
 
+/*
+
 object Servers {
 
   val serv_addr = Map(
@@ -21,7 +23,7 @@ object Servers {
   }
 
 
-  class ServerLink(url: String) extends ClientLink {
+class ServerLink() extends Actor {
 
       val ws = WebSocket().open(url)
 
@@ -47,5 +49,5 @@ object Servers {
   }
 
 }
-
+*/
 
