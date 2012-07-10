@@ -19,12 +19,13 @@ object MSG_JSON {
   case class Body(id : Id, map_id : Id, pos : Pos)
 
   case class MapSurfaceVisible(content : Seq[Seq[MapElementVisible]])
-  case class MapElementVisible(kind : String)
+  case class MapElementVisible(code : String)
 
 
   //client -> server class
   case class Me_Move(pos : Pos)
   case class Me_JumpingId(id : Id)
+  case class Ask_Map()
 
   //server -> client class
   case class Player_Move(id : Id, pos : Pos)
@@ -32,8 +33,11 @@ object MSG_JSON {
   case class Player_Quit(id : Id)
   case class CurrentMap(your_body : Body, others_body : Seq[Body], map : MapSurfaceVisible)
 
+  case class YouQuit()
+  case class YouJump(url : String)
+
   //server -> server
-  case class PlayerJumpingInit(body : Body)
+  case class PlayerJumpingInit(mapName : String, pos : Pos)
   case class PlayerJumpingId(id : Id)
 
 
@@ -52,14 +56,17 @@ object MSG_JSON {
       case "Body" => jerkson.parse[Body](data)
       case "MapSurfaceVisible" => jerkson.parse[MapSurfaceVisible](data)
       case "MapElementVisible" => jerkson.parse[MapElementVisible](data)
-      case "Me_Move" => jerkson.parse[Me_Move](data)
+      case "Me_Move" => Me_Move(Pos( (json \ "data" \ "pos" \ "x").as[Int], (json \ "data" \ "pos" \ "y").as[Int]) ) //jerkson.parse[Me_Move](data)
       case "Me_JumpingId" => jerkson.parse[Me_JumpingId](data)
+      case "Ask_Map" => Ask_Map() //jerkson.parse[Ask_Map](data)
       case "Player_Move" => jerkson.parse[Player_Move](data)
       case "Player_Join" => jerkson.parse[Player_Join](data)
       case "Player_Quit" => jerkson.parse[Player_Quit](data)
       case "CurrentMap" => jerkson.parse[CurrentMap](data)
-      case "PlayerJumpingInit" => jerkson.parse[PlayerJumpingInit](data)
-      case "PlayerJumpingId" => jerkson.parse[PlayerJumpingId](data)
+      case "YouQuit" => YouQuit() //jerkson.parse[YouQuit](data)
+      case "YouJump" => jerkson.parse[YouJump](data)
+      case "PlayerJumpingInit" => PlayerJumpingInit( (json \ "data" \ "mapName").as[String], Pos( (json \ "data" \ "pos" \ "x").as[Int], (json \ "data" \ "pos" \ "y").as[Int]))  //jerkson.parse[PlayerJumpingInit](data)
+      case "PlayerJumpingId" => PlayerJumpingId(Id( (json \ "data" \ "id" \ "id").as[String] ))  //jerkson.parse[PlayerJumpingId](data)
     }
   }
 
@@ -80,10 +87,13 @@ object MSG_JSON {
     case e : MapElementVisible => "MapElementVisible"
     case e : Me_Move => "Me_Move"
     case e : Me_JumpingId => "Me_JumpingId"
+    case e : Ask_Map => "Ask_Map"
     case e : Player_Move => "Player_Move"
     case e : Player_Join => "Player_Join"
     case e : Player_Quit => "Player_Quit"
     case e : CurrentMap => "CurrentMap"
+    case e : YouQuit => "YouQuit"
+    case e : YouJump => "YouJump"
     case e : PlayerJumpingInit => "PlayerJumpingInit"
     case e : PlayerJumpingId => "PlayerJumpingId"
   }

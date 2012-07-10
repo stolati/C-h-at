@@ -8,15 +8,15 @@ sealed abstract class MapElement()
 case class Floor() extends MapElement
 case class Block() extends MapElement
 
-case class FloorLocalJump(b : Body) extends MapElement
-case class FloorMapJump(name : String, pos : Option[(Int, Int)]) extends MapElement
-case class FloorServerJump(serv_name : String, map_name : String, pos : Option[(Int, Int)]) extends MapElement
+case class FloorLocalJump(p : Pos) extends MapElement
+case class FloorMapJump(name : String, pos : Pos) extends MapElement
+case class FloorServerJump(serv_name : String, map_name : String, pos : Pos) extends MapElement
 
 
 
 class MapSurface(h : Int, w : Int, content : Array[Array[MapElement]]) {
-  def isInside(b : MapSurface.Body) = ( b.x >= 0 && b.y >= 0 && b.x < w && b.y < h )
-  def getAt(b : MapSurface.Body) = content(b.y)(b.x)
+  def isInside(p : Pos) = ( p.x >= 0 && p.y >= 0 && p.x < w && p.y < h )
+  def getAt(p : Pos) = content(p.y)(p.x)
 
   def toMapSurfaceVisible() = MapSurfaceVisible(
     content.map( line =>
@@ -33,14 +33,18 @@ class MapSurface(h : Int, w : Int, content : Array[Array[MapElement]]) {
 
 
 case object BodyHelper {
-  def moveTo(bfrom : Body, p : Pos) = Body()
-  def moveTo(bfrom : Body, bto : Body) = {}
-  def distanceTo(b1 : Body, b2 : Body) = {}
+  //def moveTo(bfrom : Body, p : Pos) = Body()
+  //def moveTo(bfrom : Body, bto : Body) = {}
+  //def distanceTo(b1 : Body, b2 : Body) = {}
 }
 
 
 
 object MapSurface {
+
+  def distance(p1 : Pos, p2 : Pos) = math.abs(p1.x - p2.x) + math.abs(p1.y - p2.y)
+
+
   /*
   case class Body(id : String, x : Int, y : Int) {
     def moveTo(newX : Int, newY : Int) = Body(id, newX, newY)
@@ -66,8 +70,8 @@ object MapSurface {
   //1 mean block
   //2 men special => see at the end
   def map1 = fromHumain("""
-0S000000000000000000J
-0X000X0XXX0XXXX00000J
+SS000000000000000000J
+SX000X0XXX0XXXX00000J
 0XX0XX00X00X00000000J
 0X0X0X00X00X00000000J
 0X000X0XXX0XXXX00000J
@@ -90,9 +94,9 @@ JJJJJJJJJJJJJJJJJ22JJ
   """, Map(
       '0' -> Floor(),
       'X' -> Block(),
-      'J' -> FloorLocalJump(Body(Id(), Id(), Pos(6, 6))),
-      '2' -> FloorMapJump("map2", Some(1, 1) ),
-      'S' -> FloorServerJump("S1", "map3", None)
+      'J' -> FloorLocalJump(Pos(6, 6)),
+      '2' -> FloorMapJump("map2", Pos(1, 1) ),
+      'S' -> FloorServerJump("S1", "map4", Pos(1, 1))
       )
    )
   
@@ -101,7 +105,7 @@ JJJJJJJJJJJJJJJJJ22JJ
 00000000000000000003
 00000000000000000003
 00000000000000000003
-""", Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Body(Id(), Id(), Pos(1, 1))), '3' -> FloorMapJump("map3", None) ))
+""", Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Pos(1, 1)), '3' -> FloorMapJump("map3", Pos(1, 1)) ))
   
 
   def map3 = fromHumain("""
@@ -125,16 +129,42 @@ X0X
 X0X
 101
 111
-""", Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Body(Id(), Id(), Pos(1, 1))), '1' -> FloorMapJump("map1", Some(0, 0) )))
-  
+""", Map('0' -> Floor(), 'X' -> Block(), 'J' -> FloorLocalJump(Pos(1, 1)), '1' -> FloorMapJump("map1", Pos(1, 1) )))
+
+
+  def map4 = fromHumain("""
+XX00000
+X0X0000
+0XXX000
+00XXX00
+000XXX0
+00000XX
+""", Map('0' -> Floor(), 'X' -> Block()))
 
   def names = Map(
 		"map1" -> MapSurface.map1,
 		"map2" -> MapSurface.map2,
-		"map3" -> MapSurface.map3
+		"map3" -> MapSurface.map3,
+    "map4" -> MapSurface.map4
   )
   
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

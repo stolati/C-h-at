@@ -4,26 +4,7 @@ import play.api.mvc._
 import play.api.libs.json._
 import models._
 import models.ExternalLink.WebServicePassif
-
-
-object JS_MSG {
-
-
-  case class Person(id: Long, name : String)
-  implicit object PersonFormat extends Format[Person] {
-    def reads(json: JsValue): Person = Person(
-      (json \ "id").as[Long],
-      (json \ "name").as[String]
-    )
-    def writes(p : Person): JsValue = JsObject(List(
-      "id" -> JsNumber(p.id),
-      "name" -> JsString(p.name)
-    ))
-  }
-
-}
-
-
+import models.msg_json.MSG_JSON.Id
 
 
 object Canvas extends Controller {
@@ -31,20 +12,16 @@ object Canvas extends Controller {
   val defaultMapName = "map1"
   
   def index = Action {
-    println("tutu")
-
-    val js = Json.toJson[JS_MSG.Person]( JS_MSG.Person(100343, "toto"))
-    println(js)
-
-
-
     Ok(views.html.canvas("hello"))
   }
   
-  def ws = WebSocket.async[JsValue]{ request =>
+  def ws(id : Option[String]) = WebSocket.async[JsValue]{ request =>
 
     val ca = new PlayerLink()
     val cl = new WebServicePassif(ca)
+    ca.setWs(cl)
+
+    if(id != None) ca ! HasIdJump(Id(id.get))
 
     cl.start()
     ca.start()

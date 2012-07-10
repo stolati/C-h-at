@@ -43,9 +43,12 @@ class MapSurface
     @mapContent = null
     @mapSize = [1, 1]
   
-  setMap: (data, [w, h]) ->
-    @mapSize = [w, h]
-    @mapContent = data
+  setMap: (data) ->
+    @mapContent = ((cell["code"] for cell in line) for line in data)
+    h = @mapContent.length
+    w = 0
+    w = Math.max(w, e.length) for e in @mapContent
+    @mapSize = [w, h] #TODO
     @isInit = true
 
   moveAction: (where) ->
@@ -153,34 +156,40 @@ $(document).ready ->
         console.log "toto"
         
         wsUri = document.location.host
-        wsUri = "ws://#{wsUri}/ws"
+        wsUri = "ws://#{wsUri}/ws" + document.location.search
         
         ws = new WebSocket(wsUri)
-        ws.onopen = (evt) -> console.log evt
+        ws.onopen = (evt) ->
+         console.log evt
+
+         ws.send(JSON.stringify({kind:'Ask_Map', data: {}}))
         ws.onclose = (evt) -> console.log evt
         ws.onmessage = (evt) ->
-            console.log "reception of : ", evt.data
-            msgJson = JSON.parse(evt.data)
-            [type, data] = [msgJson["type"], msgJson["data"]]
-            
-            switch type
-              when "first_connect"
-                [map, me, other] = [data["map"], data["me"], data["other"]]
-                ms.setMap(map["content"], [map["w"], map["h"]])
-                ms.addMe(me["id"], [me["x"], me["y"]])
-                ms.setPlayer(el["id"], [el["x"], el["y"]]) for el in other
-              when "setPlayer" then ms.setPlayer(data["id"], [data["x"], data["y"]])
-              when "join"then ms.setPlayer(data["id"], [data["x"], data["y"]])
-              when "quit" then ms.rmPlayer(data["id"])
-              when "disconnected" then ms.init_empty()
-              else
-                console.log "no handler for that : "
-                console.log evt.data
+          console.log "reception of : ", evt.data
+          msgJson = JSON.parse(evt.data)
+          [type, data] = [msgJson["kind"], msgJson["data"]]
+
+          switch type
+            when "CurrentMap"
+              [my_body, others_body, cur_map] = [data["your_body"], data["others_body"], data["map"]["content"]]
+              ms.setMap(cur_map)
+              ms.addMe(my_body["id"]["id"], [my_body["pos"]["x"], my_body["pos"]["y"]])
+              ms.setPlayer(el["id"]["id"], [el["pos"]["x"], el["pos"]["y"]]) for el in others_body
+
+            when "Player_Move" then ms.setPlayer(data["id"]["id"], [data["pos"]["x"], data["pos"]["y"]])
+            when "Player_Join" then ms.setPlayer(data["id"]["id"], [data["pos"]["x"], data["pos"]["y"]])
+            when "Player_Quit" then ms.rmPlayer(data["id"]["id"])
+            when "YouQuit" then ms.init_empty()
+            when "YouJump" then document.location.href = data["url"]
+
+            else
+              console.log "no handler for that : "
+              console.log evt.data
 
         ws.onerror = (evt) -> console.log evt
         
         ms.setCanvasFct (id, [x, y]) ->
-            res =  JSON.stringify({type:'move', data: {id:id, x:x, y:y}})
+            res =  JSON.stringify({kind:'Me_Move', data: { pos : {x:x, y:y} }})
             console.log("sending : #{res}")
             ws.send(res)
         

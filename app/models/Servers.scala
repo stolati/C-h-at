@@ -3,51 +3,62 @@ package models
 import org.jfarcand.wcs._
 import models.ClientLink._
 import play.api.libs.json._
+import actors.Actor
+import models.ExternalLink._
+import models.msg_json.MSG_JSON._
+import models.ExternalLink.ExternalLink.FROM_LINK
 
-
-/*
 
 object Servers {
 
   val serv_addr = Map(
-    "S1" -> "ws://localhost:9000/serv",
-    "localhost" -> "ws://localhost:9000/serv"
+    "S1"        -> "localhost:9000",
+    "localhost" -> "localhost:9000"
   )
 
-  //TODO : don't create a connection each time, use a pool
-  //TODO : getServerLink should be an actor
-
-  def getServerLink(name : String) = {
-    val url = serv_addr(name)
-    new ServerLink(url)
+  //TODO : don't create a connection each time, use a pool. Maybe another time
+  def getServerLink(name : String, a : Actor) = {
+    val wsa = new WebServiceActif(a, getServUrl(name))
+    wsa.start()
+    wsa
   }
+
+  def getMoveUrl(name : String, id : Id) = "http://"  + serv_addr(name) + "/canvas?id=" + id.id
+  def getServUrl(name : String) = "ws://" + serv_addr(name) + "/serv_ws"
+
+
+
+  //TODO transform that into an actor
+  var futurePlayers = Map[Id, PlayerJumpingInit]()
+
+}
+
 
 
 class ServerLink() extends Actor {
 
-      val ws = WebSocket().open(url)
+  var wsLink : Option[Actor] = None
 
-      ws.listener( new MessageListener{
-        override def onMessage(message: String){
-          println("go message : ", message)
-          println("go message : ", message.toString())
-          val (kind, data) = js2send(Json.parse(message))
-          sendFct(kind, data)
-        }
+  def setWs(a : Actor) = wsLink = Some(a)
 
-        override def onClose(code : Int, reason : String){
-          endFct()
-        }
-      })
+  def act = loop {
+    receive {
+      case FROM_LINK(pji : PlayerJumpingInit) =>
+        println(this, "received PlayerJumpingInit")
+        val id = IdGen.genNext()
+        Servers.futurePlayers += id -> pji
 
-      var sendFct : (String, JsValue) => Unit = (k : String, d : JsValue) => {}
-      var endFct : () => Unit = () => {}
+        println(this, "sending PlayerJumpingId")
+        wsLink.get ! PlayerJumpingId(id)
 
-      override def push(kind : String, data : JsValue = JsNull) = ws.send(push2js(kind, data).toString())
-      override def setSend(f : (String, JsValue) => Unit) = {sendFct = f}
-      override def setEnd(f : () => Unit) = {endFct = f}
+      case ce : ExternalLink.ExternalLink.CONNECTION_END =>
+        println("end of my connection")
+        exit
+
+      case e : Any => println("server received something unusual", e)
+    }
   }
 
+
 }
-*/
 
