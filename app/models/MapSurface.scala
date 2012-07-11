@@ -16,7 +16,16 @@ case class FloorServerJump(serv_name : String, map_name : String, pos : Pos) ext
 
 class MapSurface(h : Int, w : Int, content : Array[Array[MapElement]]) {
   def isInside(p : Pos) = ( p.x >= 0 && p.y >= 0 && p.x < w && p.y < h )
-  def getAt(p : Pos) = content(p.y)(p.x)
+  def getAt(p : Pos) = content(p.y.toInt)(p.x.toInt)
+  def getAllAt(p: Pos, size : (Double, Double)) = {
+    var (min_x, max_x) = (math.floor(p.x).toInt, math.ceil(p.x + size._1).toInt)
+    var (min_y, max_y) = (math.floor(p.y).toInt, math.ceil(p.y + size._2).toInt)
+
+    (min_x until max_x).map( x =>
+      (min_y until max_y).map(y =>
+        getAt(Pos(x, y))
+    )).flatten
+  }
 
   def toMapSurfaceVisible() = MapSurfaceVisible(
     content.map( line =>
@@ -133,13 +142,14 @@ X0X
 
 
   def map4 = fromHumain("""
-XX00000
-X0X0000
-0XXX000
-00XXX00
-000XXX0
-00000XX
-""", Map('0' -> Floor(), 'X' -> Block()))
+XX0000000
+X00000000
+000000000
+00XXX0000
+000XXX000
+00000XX00
+00000XX00
+                        """, Map('0' -> Floor(), 'X' -> Block()))
 
   def names = Map(
 		"map1" -> MapSurface.map1,

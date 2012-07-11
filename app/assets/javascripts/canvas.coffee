@@ -58,10 +58,10 @@ class MapSurface
     [maxX, maxY] = @mapSize
   
     switch where
-      when "left"  then curX -= 1
-      when "right" then curX += 1
-      when "up"    then curY -= 1
-      when "down"  then curY += 1
+      when "left"  then curX -= 0.25
+      when "right" then curX += 0.25
+      when "up"    then curY -= 0.25
+      when "down"  then curY += 0.25
       else return
     
     curX = Math.min( Math.max(0, curX), maxX - 1)
@@ -74,17 +74,13 @@ class MapSurface
   getAt: ([x, y]) ->
     return "None" if not @isInit
     
-    res = switch @mapContent[y][x]
+    switch @mapContent[y][x]
       when "F" then "Floor"
       when "B" then "Block"
 
-    for el_id, [el_x, el_y] of @listElems
-      if x != el_x or y != el_y then continue
-      if el_id == @id then return "Me"
-      return "Other_player"
-    
-    res
-  
+  getAllPlayers: () ->
+    [@listElems[@id] , (pos for el_id, pos of @listElems when el_id != @id)]
+
   setPlayer: (id, [x, y]) -> @listElems[id] = [x, y]
   rmPlayer: (id) -> delete @listElems[id]
   addMe: (id, [x, y]) -> [@id, @listElems[id]] = [id, [x, y]]
@@ -116,6 +112,8 @@ myCanvas_draw = (cv) ->
         cv.size(sizeX * step, sizeY * step)
         cv.background(255)
         cv.stroke(50)
+
+        if not ms.isInit then return
         
         #drawing 5 per 5 cases lines
         for x in [1..cv.width] by step
@@ -123,22 +121,33 @@ myCanvas_draw = (cv) ->
         for y in [1..cv.height] by step
             cv.line(0, y, cv.width, y)
 
+        drawSquare = (x, y, color) ->
+          [r, g, b] = color
+          cv.fill(r, g, b)
+          cv.rect(step *x + 1, step * y + 1, step, step)
+
+
         #drawing map floor
         [w, h] = ms.mapSize
 
         for x in [0..w-1]
           for y in [0..h-1]
-            [r, g, b] = switch ms.getAt([x, y])
+            curColor = switch ms.getAt([x, y])
               when "None" then Colors.blue
               when "Floor" then Colors.black
               when "Block" then Colors.white
-              when "Me" then Colors.red
-              when "Other_player" then Colors.green
               else Colors.blue
-            
-            cv.fill(r, g, b)
-            cv.rect(step *x + 1, step * y + 1, step, step)
-          
+
+            drawSquare(x, y, curColor)
+
+        [[curP_x, curP_y], otherPlayers] = ms.getAllPlayers()
+
+        for [x, y] in otherPlayers
+          drawSquare(x, y, Colors.green)
+
+        drawSquare(curP_x, curP_y, Colors.red)
+
+
     cv.keyPressed = () ->
       switch cv.keyCode
         when 37 then ms.moveAction("left")

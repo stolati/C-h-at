@@ -15,7 +15,7 @@ object MSG_JSON {
 
   //general class
   case class Id(id : String = "")
-  case class Pos(x : Int, y : Int)
+  case class Pos(x : Double, y : Double)
   case class Body(id : Id, map_id : Id, pos : Pos)
 
   case class MapSurfaceVisible(content : Seq[Seq[MapElementVisible]])
@@ -56,7 +56,7 @@ object MSG_JSON {
       case "Body" => jerkson.parse[Body](data)
       case "MapSurfaceVisible" => jerkson.parse[MapSurfaceVisible](data)
       case "MapElementVisible" => jerkson.parse[MapElementVisible](data)
-      case "Me_Move" => Me_Move(Pos( (json \ "data" \ "pos" \ "x").as[Int], (json \ "data" \ "pos" \ "y").as[Int]) ) //jerkson.parse[Me_Move](data)
+      case "Me_Move" => Me_Move(Pos( (json \ "data" \ "pos" \ "x").as[Double], (json \ "data" \ "pos" \ "y").as[Double]) ) //jerkson.parse[Me_Move](data)
       case "Me_JumpingId" => jerkson.parse[Me_JumpingId](data)
       case "Ask_Map" => Ask_Map() //jerkson.parse[Ask_Map](data)
       case "Player_Move" => jerkson.parse[Player_Move](data)
@@ -65,7 +65,7 @@ object MSG_JSON {
       case "CurrentMap" => jerkson.parse[CurrentMap](data)
       case "YouQuit" => YouQuit() //jerkson.parse[YouQuit](data)
       case "YouJump" => jerkson.parse[YouJump](data)
-      case "PlayerJumpingInit" => PlayerJumpingInit( (json \ "data" \ "mapName").as[String], Pos( (json \ "data" \ "pos" \ "x").as[Int], (json \ "data" \ "pos" \ "y").as[Int]))  //jerkson.parse[PlayerJumpingInit](data)
+      case "PlayerJumpingInit" => PlayerJumpingInit( (json \ "data" \ "mapName").as[String], Pos( (json \ "data" \ "pos" \ "x").as[Double], (json \ "data" \ "pos" \ "y").as[Double]))  //jerkson.parse[PlayerJumpingInit](data)
       case "PlayerJumpingId" => PlayerJumpingId(Id( (json \ "data" \ "id" \ "id").as[String] ))  //jerkson.parse[PlayerJumpingId](data)
     }
   }

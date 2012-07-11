@@ -131,7 +131,7 @@ object MapRoom {
   
   lazy val default_map = maps("map1")
   
-  def getInitBody(pos : Option[Pos]) = Body(models.IdGen.genNext(), Id(), pos.getOrElse(Pos(1, 1)))
+  def getInitBody(pos : Option[Pos]) = Body(models.IdGen.genNext(), Id(), pos.getOrElse(Pos(16, 6)))
   def Msg(kind : String, data : JsValue) = JsObject(Seq("type" -> JsString(kind), "data" -> data))
   
 }
@@ -148,6 +148,53 @@ class MapRoom(myMap : MapSurface) extends Actor {
      members(id).b = Body(id, old_body.map_id, pos)
      this.toAll( Player_Move(id, pos) )
   }
+
+
+  def gotMove(id : Id, new_pos : Pos) {
+    val member = members(id)
+    val old_pos = member.b.pos
+
+    val moveStepValid = MapSurface.distance(new_pos, old_pos) <= 1
+    val isInside = myMap.isInside(new_pos)
+
+    if(!moveStepValid || !isInside) {
+      playerMove(id, old_pos)
+      return
+    }
+
+    //find out which is the main element under the feet
+    var jumpAction : MapElement = Floor()
+    var hasBlock = false
+
+    //priority for block
+    myMap.getAllAt(new_pos, size = (1, 1)).collect {
+      case Block() => hasBlock = true
+      case Floor() =>
+      case e : FloorLocalJump  => jumpAction = e
+      case e : FloorMapJump    => jumpAction = e
+      case e : FloorServerJump => jumpAction = e
+    }
+
+    if(hasBlock) {
+      playerMove(id, old_pos)
+      return
+    }
+
+    jumpAction match {
+      case FloorLocalJump(p) => playerMove(id, p)
+
+      case FloorMapJump(mapName, pos) =>
+        member.actor ! ChangeMap(MapRoom.maps(mapName), Some(pos))
+
+      case FloorServerJump(servName, mapName, pos) =>
+        print("server jump stuff")
+        member.actor ! FloorServerJump(servName, mapName, pos)
+      case Floor() => playerMove(id, new_pos)
+      case Block() => assert(false)
+    }
+
+  }
+
   
   
   def act() = loop {
@@ -170,33 +217,7 @@ class MapRoom(myMap : MapSurface) extends Actor {
           case _ => println("in quitting, already not here")
         }
 
-
-
-
-      case (id : Id, Me_Move(new_pos : Pos)) =>
-        val member = members(id)
-        val old_pos = member.b.pos
-
-        val moveStepValid = MapSurface.distance(new_pos, old_pos)  == 1
-        val isInside = myMap.isInside(new_pos)
-
-        if(moveStepValid && isInside){
-          myMap.getAt(new_pos)  match {
-            case Floor() => playerMove(id, new_pos)
-            case Block() => playerMove(id, old_pos)
-
-            case FloorLocalJump(p) => playerMove(id, p)
-            case FloorMapJump(mapName, pos) =>
-              member.actor ! ChangeMap(MapRoom.maps(mapName), Some(pos))
-
-            case FloorServerJump(servName, mapName, pos) =>
-              print("server jump stuff")
-              member.actor ! FloorServerJump(servName, mapName, pos)
-          }
-
-        } else {
-          playerMove(id, old_pos)
-        }
+      case (id : Id, Me_Move(new_pos : Pos)) => gotMove(id, new_pos)
 
       case x : Any => println("MapRoom receive : ", x)
     }
