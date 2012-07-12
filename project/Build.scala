@@ -10,13 +10,13 @@ object ApplicationBuild extends Build {
     //I don't know in which one I have to put it
 
     val appDependencies = Seq(
-      //"org.jfarcand" % "wcs-all" % "1.2",
-      "org.jfarcand" % "wcs" % "1.2"
+      "org.jfarcand" % "wcs" % "1.2",
+      "net.vz.mongodb.jackson" %% "play-mongo-jackson-mapper" % "1.0.0"
     )
 
     val libraryDependencies = Seq(
-      //"org.jfarcand" % "wcs-all" % "1.2",
-      "org.jfarcand" % "wcs" % "1.2"
+      "org.jfarcand" % "wcs" % "1.2",
+      "net.vz.mongodb.jackson" %% "play-mongo-jackson-mapper" % "1.0.0"
     )
 
 
