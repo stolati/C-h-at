@@ -1,8 +1,6 @@
-
-step = 20
 window.log = console.log
 
-Colors = #enumerator of rgb
+Color = #enumerator of rgb
   white : [255, 255, 255]
   black : [0  , 0  , 0  ]
   green : [0  , 255, 0  ]
@@ -10,7 +8,7 @@ Colors = #enumerator of rgb
   blue :  [0  , 0  , 255]
 
 
-class SquarePlace
+class SquarePlace extends Backbone.Model
     constructor: (@pos_x, @pos_y) ->
 
     move: (x, y) ->
@@ -28,8 +26,9 @@ isInitalized = false
 mapContent = null
 mapSize = [1, 1]
 
-class MapSurface
-  constructor: () ->
+class MapSurface extends Backbone.Model
+
+  initialize: ->
     this.init_empty()
     @canvasFct = (id, [x, y]) ->
   
@@ -86,9 +85,14 @@ class MapSurface
   addMe: (id, [x, y]) -> [@id, @listElems[id]] = [id, [x, y]]
 
   
-ms = new MapSurface()
 
 
+class Toto extends Backbone.View
+
+  constructor: () ->
+    @toto = "titi"
+
+document.Toto = Toto
 
 autoMove = (moves, looping) =>
   if moves.length == 0
@@ -102,65 +106,141 @@ autoMove = (moves, looping) =>
   nextFct = () -> autoMove(moves, looping)
   setTimeout(nextFct, time)
 
-myCanvas_draw = (cv) ->
-    cv.setup = () ->
-       cv.size(Math.floor($(window).width() / 1.5), Math.floor($(window).height() / 1.3) )
-       cv.background(255)
-
-    cv.draw = () ->
-        [sizeX, sizeY] = ms.mapSize
-        cv.size(sizeX * step, sizeY * step)
-        cv.background(255)
-        cv.stroke(50)
-
-        if not ms.isInit then return
-        
-        #drawing 5 per 5 cases lines
-        for x in [1..cv.width] by step
-            cv.line(x, 0, x, cv.height)	
-        for y in [1..cv.height] by step
-            cv.line(0, y, cv.width, y)
-
-        drawSquare = (x, y, color) ->
-          [r, g, b] = color
-          cv.fill(r, g, b)
-          cv.rect(step *x + 1, step * y + 1, step, step)
 
 
-        #drawing map floor
-        [w, h] = ms.mapSize
+class CanvasSquare extends Backbone.View
+  color : Color.blue
+  posX : null
+  posY : null
 
-        for x in [0..w-1]
-          for y in [0..h-1]
-            curColor = switch ms.getAt([x, y])
-              when "None" then Colors.blue
-              when "Floor" then Colors.black
-              when "Block" then Colors.white
-              else Colors.blue
+  render : (cv = null, conf = null) ->
+    return @ if cv == null
 
-            drawSquare(x, y, curColor)
+    drawSquare(cv, @posX, @posY, @color, conf["step"])
 
-        [[curP_x, curP_y], otherPlayers] = ms.getAllPlayers()
-
-        for [x, y] in otherPlayers
-          drawSquare(x, y, Colors.green)
-
-        drawSquare(curP_x, curP_y, Colors.red)
+  drawSquare : (cv, x, y, color, step) ->
+    [r, g, b] = color
+    cv.fill(r, g, b)
+    cv.rect(step *x + 1, step * y + 1, step, step)
 
 
-    cv.keyPressed = () ->
-      switch cv.keyCode
-        when 37 then ms.moveAction("left")
-        when 39 then ms.moveAction("right")
-        when 38 then ms.moveAction("up")
-        when 40 then ms.moveAction("down")
-        
+
+class CanvasWall extends CanvasSquare
+  color : Color.white
+
+
+class CanvasPlayer extends Backbone.View
+  color : Color.red
+
+
+class CanvasMainPlayer extends Backbone.View
+  color : Color.green
+
+
+
+class CanvasDraw extends Backbone.View
+
+  isLinked : false
+  hasContent = false
+  mapX : null
+  mapY : null
+  step : 0
+
+  tagName: 'canvas'
+  className : 'main_canvas'
+
+  initialize: ->
+    #bind all the view's methods to this instance of view
+    _.bindAll @
+
+    #@walls = new
+    @step = @options.step
+
+    me = @
+    @myCanvas_draw = (cv) ->
+        cv.setup = () ->
+           cv.size(Math.floor($(window).width() / 1.5), Math.floor($(window).height() / 1.3) )
+           cv.background(255)
+
+        cv.draw = () -> me.render(cv)
+
+        cv.keyPressed = () -> me.move({37:"left", 39:"right", 38:"up", 40:"down"}[cv.keyCode])
+
+    @render()
+
+
+  #unrender: ->
+  #  $(@el)remove()
+
+  render: (cv = null) ->
+    if not @isLinked
+      $("body").append(@el)
+      @isLinked = true
+
+    return @ if cv == null
+    return @ if not @model.isInit
+
+    [sizeX, sizeY] = @model.mapSize
+    cv.size(sizeX * @step, sizeY * @step)
+    cv.background(Color.black)
+    cv.stroke(50)
+
+    #drawing 5 per 5 cases lines
+    for x in [1..cv.width] by @step
+        cv.line(x, 0, x, cv.height)
+    for y in [1..cv.height] by @step
+        cv.line(0, y, cv.width, y)
+
+    #drawing map floor
+    [w, h] = @model.mapSize
+
+    for x in [0..w-1]
+      for y in [0..h-1]
+        curColor = switch @model.getAt([x, y])
+          when "None" then Color.blue
+          when "Floor" then Color.black
+          when "Block" then Color.white
+          else Color.blue
+
+        @drawSquare(cv, x, y, curColor)
+
+    [[curP_x, curP_y], otherPlayers] = @model.getAllPlayers()
+
+    for [x, y] in otherPlayers
+      @drawSquare(cv, x, y, Color.green)
+
+    @drawSquare(cv, curP_x, curP_y, Color.red)
+
+
+  drawSquare : (cv, x, y, color) ->
+    [r, g, b] = color
+    cv.fill(r, g, b)
+    cv.rect(@step *x + 1, @step * y + 1, @step, @step)
+
+
+  move: (direction) ->
+    console.log "moving to " + direction
+    @model.moveAction(direction)
+
+
 
 $(document).ready ->
+
+    Backbone.sync = (method, model, success, error) ->
+      console.log "backbone.sync launched"
+      success()
+
+
     try
-        canvas = document.getElementById "myCanvas"
-        console.log canvas
-        processing = new Processing($("canvas")[0], myCanvas_draw)
+
+        ms = new MapSurface({"toto": "titi"})
+
+        cd = new CanvasDraw({model: ms, step: 10})
+
+        document.cd = cd
+        document.ms = ms
+
+        processing = new Processing(cd.el, cd.myCanvas_draw)
         
         console.log "toto"
         
