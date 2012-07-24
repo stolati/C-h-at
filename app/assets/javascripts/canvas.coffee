@@ -1,5 +1,7 @@
 window.log = console.log
 
+#TODO change the MapSurface so it's recreated for each map, not updated when map change
+
 Color = #enumerator of rgb
   white : [255, 255, 255]
   black : [0  , 0  , 0  ]
@@ -8,53 +10,76 @@ Color = #enumerator of rgb
   blue :  [0  , 0  , 255]
 
 
-class SquarePlace extends Backbone.Model
-    constructor: (@pos_x, @pos_y) ->
-
-    move: (x, y) ->
-        @pos_x += x
-        @pos_y += y
-
 #old stuff to delete
 myCanvasFct = ([x, y]) -> 
 
-listElems = {}
-myId = ""
+##################################
+# Model
+##################################
 
-isInitalized = false
+class MapElement extends Backbone.Model
+  defaults:
+    posX : null
+    posY : null
 
-mapContent = null
-mapSize = [1, 1]
+  setPos : (x, y) -> @set({posX:x, posY:y})
+  getPos : () -> [@get("posX"), @get("posY")]
+
+
+class MapWall extends MapElement
+
+class MapPlayer extends MapElement
+  idAttribute : "_id" #because play has it's own id on object
+
+class MapMainPlayer extends MapPlayer
+
+
+class MapPlayers extends Backbone.Collection
+  model : MapPlayer
+
+class MapWalls extends Backbone.Collection
+  model : MapWall
+
 
 class MapSurface extends Backbone.Model
+  defaults:
+    mainPlayer : null
+    players : new MapPlayers
+    mapSize : [1, 1]
+    mapWalls : new MapWalls
+  isInit : false
 
   initialize: ->
-    this.init_empty()
-    @canvasFct = (id, [x, y]) ->
+    #options
+    @canvasFct = ([x, y]) ->
+
   
   setCanvasFct: (fct) -> @canvasFct = fct
   
-  init_empty: () ->
-    console.log "init_empty"
-    @listElems = {}
-    @id = ""
-    @isInit = false
-    @mapContent = null
-    @mapSize = [1, 1]
-  
   setMap: (data) ->
-    @mapContent = ((cell["code"] for cell in line) for line in data)
-    h = @mapContent.length
+    h = data.length
     w = 0
-    w = Math.max(w, e.length) for e in @mapContent
-    @mapSize = [w, h] #TODO
+    w = Math.max(w, e.length) for e in data
+
+    @get("mapWalls").reset([])
+
+    @set(mapSize:[w, h])
+    for x in [0..w-1]
+      for y in [0..h-1]
+        switch data[y][x]["code"]
+          when "F" then "Floor, do nothing"
+          when "B"
+            mw = new MapWall
+            mw.setPos(x, y)
+            @get("mapWalls").add(mw)
+
     @isInit = true
 
   moveAction: (where) ->
     return if not @isInit
     
-    [curX, curY] = @listElems[@id]
-    [maxX, maxY] = @mapSize
+    [curX, curY] = @get("mainPlayer").getPos()
+    [maxX, maxY] = @get("mapSize")
   
     switch where
       when "left"  then curX -= 0.25
@@ -65,35 +90,33 @@ class MapSurface extends Backbone.Model
     
     curX = Math.min( Math.max(0, curX), maxX - 1)
     curY = Math.min( Math.max(0, curY), maxY - 1)
-        
-    @listElems[@id] = [curX, curY] 
-    log "myCanvasFct( [#{curX}, #{curY}] )"
-    @canvasFct(@id, [curX, curY])
 
-  getAt: ([x, y]) ->
-    return "None" if not @isInit
-    
-    switch @mapContent[y][x]
-      when "F" then "Floor"
-      when "B" then "Block"
+    @get("mainPlayer").setPos(curX, curY)
+    @canvasFct([curX, curY])
 
-  getAllPlayers: () ->
-    [@listElems[@id] , (pos for el_id, pos of @listElems when el_id != @id)]
+  setPlayer: (id, [x, y]) ->
+    [mainPlayer, players] = [@.get("mainPlayer"), @.get("players")]
+    console.log mainPlayer
+    if mainPlayer and id == mainPlayer.id
+      el = mainPlayer
+    else if players.get(id)
+      el = players.get(id)
+    else
+      el = new MapPlayer({_id:id})
+      players.add(el)
 
-  setPlayer: (id, [x, y]) -> @listElems[id] = [x, y]
-  rmPlayer: (id) -> delete @listElems[id]
-  addMe: (id, [x, y]) -> [@id, @listElems[id]] = [id, [x, y]]
+    el.setPos(x, y)
+
+  rmPlayer: (id) ->
+    players = @get("players")
+    players.remove(players.get(id))
+
+  addMe: (id, [x, y]) ->
+    console.log "adding me : " + [x, y]
+    @set({mainPlayer:new MapPlayer({posX:x, posY:y, _id:id})})
+    console.log @get("mainPlayer")
 
   
-
-
-class Toto extends Backbone.View
-
-  constructor: () ->
-    @toto = "titi"
-
-document.Toto = Toto
-
 autoMove = (moves, looping) =>
   if moves.length == 0
     [move, time] = looping[0]
@@ -106,6 +129,11 @@ autoMove = (moves, looping) =>
   nextFct = () -> autoMove(moves, looping)
   setTimeout(nextFct, time)
 
+
+
+##################################
+# View
+##################################
 
 
 class CanvasSquare extends Backbone.View
@@ -122,8 +150,6 @@ class CanvasSquare extends Backbone.View
     [r, g, b] = color
     cv.fill(r, g, b)
     cv.rect(step *x + 1, step * y + 1, step, step)
-
-
 
 class CanvasWall extends CanvasSquare
   color : Color.white
@@ -153,6 +179,9 @@ class CanvasDraw extends Backbone.View
     #bind all the view's methods to this instance of view
     _.bindAll @
 
+    #@model.bind 'change', @render
+    #@model.bind 'remove', @unbind
+
     #@walls = new
     @step = @options.step
 
@@ -169,6 +198,7 @@ class CanvasDraw extends Backbone.View
     @render()
 
 
+
   #unrender: ->
   #  $(@el)remove()
 
@@ -180,9 +210,9 @@ class CanvasDraw extends Backbone.View
     return @ if cv == null
     return @ if not @model.isInit
 
-    [sizeX, sizeY] = @model.mapSize
+    [sizeX, sizeY] = @model.get("mapSize")
     cv.size(sizeX * @step, sizeY * @step)
-    cv.background(Color.black)
+    cv.background(0)
     cv.stroke(50)
 
     #drawing 5 per 5 cases lines
@@ -192,23 +222,17 @@ class CanvasDraw extends Backbone.View
         cv.line(0, y, cv.width, y)
 
     #drawing map floor
-    [w, h] = @model.mapSize
+    [w, h] = @model.get("mapSize")
 
-    for x in [0..w-1]
-      for y in [0..h-1]
-        curColor = switch @model.getAt([x, y])
-          when "None" then Color.blue
-          when "Floor" then Color.black
-          when "Block" then Color.white
-          else Color.blue
+    for [x, y] in @model.get("mapWalls").map((el) -> el.getPos())
+      @drawSquare(cv, x, y, Color.white)
 
-        @drawSquare(cv, x, y, curColor)
+    [mainPlayer, players] = [@model.get("mainPlayer"), @model.get("players")]
 
-    [[curP_x, curP_y], otherPlayers] = @model.getAllPlayers()
-
-    for [x, y] in otherPlayers
+    for [x, y] in players.map((el) -> el.getPos())
       @drawSquare(cv, x, y, Color.green)
 
+    [curP_x, curP_y] = mainPlayer.getPos()
     @drawSquare(cv, curP_x, curP_y, Color.red)
 
 
@@ -250,8 +274,8 @@ $(document).ready ->
         ws = new WebSocket(wsUri)
         ws.onopen = (evt) ->
          console.log evt
-
          ws.send(JSON.stringify({kind:'Ask_Map', data: {}}))
+
         ws.onclose = (evt) -> console.log evt
         ws.onmessage = (evt) ->
           console.log "reception of : ", evt.data
@@ -265,6 +289,11 @@ $(document).ready ->
               ms.addMe(my_body["id"]["id"], [my_body["pos"]["x"], my_body["pos"]["y"]])
               ms.setPlayer(el["id"]["id"], [el["pos"]["x"], el["pos"]["y"]]) for el in others_body
 
+              ms.setCanvasFct ([x, y]) ->
+                  res =  JSON.stringify({kind:'Me_Move', data: { pos : {x:x, y:y} }})
+                  console.log("sending : #{res}")
+                  ws.send(res)
+
             when "Player_Move" then ms.setPlayer(data["id"]["id"], [data["pos"]["x"], data["pos"]["y"]])
             when "Player_Join" then ms.setPlayer(data["id"]["id"], [data["pos"]["x"], data["pos"]["y"]])
             when "Player_Quit" then ms.rmPlayer(data["id"]["id"])
@@ -277,16 +306,11 @@ $(document).ready ->
 
         ws.onerror = (evt) -> console.log evt
         
-        ms.setCanvasFct (id, [x, y]) ->
-            res =  JSON.stringify({kind:'Me_Move', data: { pos : {x:x, y:y} }})
-            console.log("sending : #{res}")
-            ws.send(res)
-        
         i = 0
         
         $.processing = processing
         
-        autoMove([], [["right", 1000], ["up", 1000]])
+        #autoMove([], [["right", 1000], ["up", 1000]])
         
     catch error
         console.log error
