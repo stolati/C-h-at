@@ -2,23 +2,36 @@ package controllers
 
 import play.api._
 import play.api.mvc._
-
-import play.api.libs.json._
-import play.api.libs.iteratee._
-
 import models._
-
-import akka.actor._
-import akka.util.duration._
-
+import se.radley.plugin.salat._
+import com.mongodb.casbah.Imports._
+import com.novus.salat._
 
 object Application extends Controller {
-  
-  /**
-   * Just display the home page.
-   */
-  def index = Action { implicit request =>
-    Ok(views.html.index("Hello"))
+
+  def list() = Action {
+    val users = User.findAll
+    Ok(views.html.list(users))
   }
- 
+
+  def listByCountry(country: String) = Action {
+    val users = User.findByCountry(country)
+    Ok(views.html.list(users))
+  }
+
+  def view(id: ObjectId) = Action {
+    User.findOneById(id).map( user =>
+      Ok(views.html.user(user))
+    ).getOrElse(NotFound)
+  }
+
+  def create(username: String) = Action {
+    val user = User(
+      username = username,
+      password = "1234"
+    )
+    User.save(user)
+    Ok(views.html.user(user))
+  }
+
 }

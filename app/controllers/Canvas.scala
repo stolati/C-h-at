@@ -6,6 +6,7 @@ import models._
 import models.ExternalLink.WebServicePassif
 import models.msg_json.MSG_JSON.Id
 
+import com.novus.salat._
 
 object Canvas extends Controller {
 

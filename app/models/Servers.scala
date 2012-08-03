@@ -1,7 +1,6 @@
 package models
 
 import org.jfarcand.wcs._
-import models.ClientLink._
 import play.api.libs.json._
 import actors.Actor
 import models.ExternalLink._
