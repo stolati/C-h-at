@@ -1,4 +1,4 @@
-package models
+package models.persistance
 
 import com.novus.salat.dao._
 import com.novus.salat.annotations._
