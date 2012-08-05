@@ -52,38 +52,35 @@ case class MapSurfaceDB(
                 name : String = "",
                 size : Size = Size(0, 0), //(x, y) = (width, height)
                 content: String = "",
-                content_decrypt: Map[Char, MapElement] = Map('c' -> Floor())
+                content_decrypt: Map[String, MapElement] = Map("c" -> Floor())
                 ) {
 
   def checkConsistence(): Boolean = {
     //test that there is enough element for the given size
     val (width, height) = size.tuple
     if(width * height != content.size) return false
-    println("this database size is good")
 
     //test that each element have a decrypt associated
-    if(content.find{ ! content_decrypt.contains(_) } != None) return false
-    println("test 2 worked")
+    if(content.find{e => ! content_decrypt.contains(e.toString) } != None) return false
 
     //test that each associated have an element in content
     if(content_decrypt.find{ e => ! content.contains(e._1) } != None) return false
     //TODO see why it don't work like that : ! content.contains(_._1)
-    println("test3 worked")
 
     return true
   }
 
   def toMapSurface() = {
 
-    //val (width, height) = this.size.tuple;
-    val (width, height) = (10, 10)
+    val (width, height) = this.size.tuple
 
-    val ararelem = (0 until width).map{ x =>
-      (0 until height).map{ h =>
-        //val pos = (x * height) + width
-        //val elem = content_decrypt.get(content(pos)).get
-        //elem
-        Floor().asInstanceOf[MapElement]
+    val ararelem = (0 until height).map{ y =>
+      (0 until width).map{ x =>
+        val pos = (y * width) + x
+        assert(pos < content.size)
+        val elem = content_decrypt.get(content(pos).toString).get
+        elem
+        //Floor().asInstanceOf[MapElement]
       }.toArray
     }.toArray
 
@@ -91,7 +88,6 @@ case class MapSurfaceDB(
   }
 
   //TODO def cleanMe()
-
 }
 
 object MapSurfaceDB extends ModelCompanion[MapSurfaceDB, ObjectId] {

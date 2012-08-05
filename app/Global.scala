@@ -49,27 +49,27 @@ object Global extends GlobalSettings {
                  "0XXXX0X0XX0X0X000000J0X00X0X00X0XX0000000J0000000000000000XXXXJ0000000000000000000SJ0000000000000000XXXXJ" +
                  "0XX000XX00X00X000000J0X0X0X00X0XX0X000000J0X0X0XXXX0X0XX00X00XJ0XX00X00X0X00X00X00XJ0000000000000000X00XJ" +
                  "JJJJJJJJJJJJJJJJJ22JJ"
-    val decypher1=Map('0' -> Floor(),
-                      'X' -> Block(),
-                      'J' -> FloorLocalJump(pos = map.Pos(6, 6)),
-                      '2' -> FloorMapJump(map = "map2", pos = map.Pos(1, 1)),
-                      'S' -> FloorServerJump(server = "S1", map = "map4", pos = map.Pos(1, 1))
+    val decypher1=Map("0" -> Floor(),
+                      "X" -> Block(),
+                      "J" -> FloorLocalJump(pos = map.Pos(6, 6)),
+                      "2" -> FloorMapJump(map = "map2", pos = map.Pos(1, 1)),
+                      "S" -> FloorServerJump(server = "S1", map = "map4", pos = map.Pos(1, 1))
                   )
     val map1 = MapSurfaceDB(name = "map1", size=Size(21, 21), content=content1, content_decrypt = decypher1)
     println("map1 test consistence : " + map1.checkConsistence())
 
     val content2="000000000000000000030000000000000000000300000000000000000003"
-    val decypher2=Map('0' -> Floor(), '3' -> FloorMapJump(pos = map.Pos(1, 1), map = "map3") )
+    val decypher2=Map("0" -> Floor(), "3" -> FloorMapJump(pos = map.Pos(1, 1), map = "map3") )
     val map2 = MapSurfaceDB(name = "map2", size=Size(20, 3), content = content2, content_decrypt = decypher2)
     println("map2 test consistence : " + map2.checkConsistence())
 
     val content3="000X0X101101101X0X101101101X0X101101101X0X101101101X0X101111"
-    val decypher3=Map('0' -> Floor(), 'X' -> Block(), '1' -> FloorMapJump(pos = map.Pos(1, 1),map = "map1") )
+    val decypher3=Map("0" -> Floor(), "X" -> Block(), "1" -> FloorMapJump(pos = map.Pos(1, 1),map = "map1") )
     val map3 = MapSurfaceDB(name = "map3", size=Size(3, 20), content = content3, content_decrypt = decypher3)
     println("map3 test consistence : " + map3.checkConsistence())
 
     val content4 = "XX0000000X0000000000000000000XXX0000000XXX00000000XX0000000XX00"
-    val decypher4 = Map('0' -> Floor(), 'X' -> Block())
+    val decypher4 = Map("0" -> Floor(), "X" -> Block())
     val map4 = MapSurfaceDB(name = "map4", size=Size(9, 7), content = content4, content_decrypt = decypher4)
     println("map4 test consistence : " + map4.checkConsistence())
 
