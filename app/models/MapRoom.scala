@@ -1,9 +1,10 @@
 package models
 
+import persistance.map._
 import play.api.libs.json._
 import actors.{OutputChannel, Actor}
-import models.MapSurface._
 import models.ExternalLink.ExternalLink._
+
 
 import models.msg_json.MSG_JSON._
 
@@ -120,12 +121,13 @@ class PlayerLink() extends Actor {
 
 object MapRoom {
 
+  //def getMap(name : String) =  models.persistance.map.MapSurfaceDB.findOneByName(name).get
+
   lazy val maps = {
-    MapSurface.names.map { e =>
-      val (s, ms) = e
-      val myMap = new MapRoom(ms)
+    MapSurfaceDB.getAll().map{ m =>
+      val myMap = new MapRoom(m.toMapSurface())
       myMap.start()
-      s -> myMap
+      m.name -> myMap
     }.toMap
   }
   
@@ -154,7 +156,7 @@ class MapRoom(myMap : MapSurface) extends Actor {
     val member = members(id)
     val old_pos = member.b.pos
 
-    val moveStepValid = MapSurface.distance(new_pos, old_pos) <= 1
+    val moveStepValid = old_pos.distance(new_pos) <= 1
     val isInside = myMap.isInside(new_pos)
 
     if(!moveStepValid || !isInside) {

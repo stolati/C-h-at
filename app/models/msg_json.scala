@@ -1,5 +1,17 @@
 package models.msg_json
 
+import play.api.Play.current
+import java.util.Date
+import com.novus.salat._
+import com.novus.salat.annotations._
+import com.novus.salat.dao._
+import com.mongodb.casbah.Imports._
+import se.radley.plugin.salat._
+import models.persistance.map.Pos
+
+//keep it !!! see salat
+import models.persistance.mongoContext._
+
 import play.api.libs.{json => play_json}
 import com.codahale.jerkson.{Json => jerkson}
 
@@ -15,7 +27,6 @@ object MSG_JSON {
 
   //general class
   case class Id(id : String = "")
-  case class Pos(x : Double, y : Double)
   case class Body(id : Id, map_id : Id, pos : Pos)
 
   case class MapSurfaceVisible(content : Seq[Seq[MapElementVisible]])
@@ -39,7 +50,6 @@ object MSG_JSON {
   //server -> server
   case class PlayerJumpingInit(mapName : String, pos : Pos)
   case class PlayerJumpingId(id : Id)
-
 
 
 
