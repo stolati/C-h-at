@@ -64,19 +64,19 @@ object Global extends GlobalSettings {
     println("map2 test consistence : " + map2.checkConsistence())
 
     val content3="000X0X101101101X0X101101101X0X101101101X0X101101101X0X101111"
-    val decypher3=Map("0" -> Floor(), "X" -> Block(), "1" -> FloorMapJump(pos = map.Pos(1, 1),map = "map1") )
+    val decypher3=Map("0" -> Floor(), "X" -> Block(), "1" -> FloorMapJump(pos = map.Pos(5, 5),map = "map1") )
     val map3 = MapSurfaceDB(name = "map3", size=Size(3, 20), content = content3, content_decrypt = decypher3)
     println("map3 test consistence : " + map3.checkConsistence())
 
-    val content4 = "XX0000000X0000000000000000000XXX0000000XXX00000000XX0000000XX00"
-    val decypher4 = Map("0" -> Floor(), "X" -> Block())
+    val content4 = "XX1000000X0000000000000000000XXX0000000XXX00000000XX0000000XX00"
+    val decypher4 = Map("0" -> Floor(), "X" -> Block(), "1" -> FloorMapJump(pos = map.Pos(2, 2),map = "map3"))
     val map4 = MapSurfaceDB(name = "map4", size=Size(9, 7), content = content4, content_decrypt = decypher4)
     println("map4 test consistence : " + map4.checkConsistence())
 
 
     Conf.set("very_first_map", "map1")
-    Conf.set("very_first_map.x", 1)
-    Conf.set("very_first_map.y", 2)
+    Conf.set("very_first_map.x", 16.0)
+    Conf.set("very_first_map.y", 6.0)
 
     MapSurfaceDB.save(map1)
     MapSurfaceDB.save(map2)
@@ -84,6 +84,7 @@ object Global extends GlobalSettings {
     MapSurfaceDB.save(map4)
 
   }
+
 
 
   def createServer(){
