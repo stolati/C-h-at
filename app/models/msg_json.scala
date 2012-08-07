@@ -51,8 +51,10 @@ object MSG_JSON {
   case class PlayerJumpingInit(mapName : String, pos : Pos)
   case class PlayerJumpingId(id : Id)
 
-
-
+  //credential stuffs
+  case class PlayerCredential(username : String, password : String)
+  case class OKPlayerCredential()
+  case class KOPlayerCredential()
 
   //helper functions
 
@@ -77,6 +79,9 @@ object MSG_JSON {
       case "YouJump" => jerkson.parse[YouJump](data)
       case "PlayerJumpingInit" => PlayerJumpingInit( (json \ "data" \ "mapName").as[String], Pos( (json \ "data" \ "pos" \ "x").as[Double], (json \ "data" \ "pos" \ "y").as[Double]))  //jerkson.parse[PlayerJumpingInit](data)
       case "PlayerJumpingId" => PlayerJumpingId(Id( (json \ "data" \ "id" \ "id").as[String] ))  //jerkson.parse[PlayerJumpingId](data)
+      case "PlayerCredential" => PlayerCredential( (json \ "data" \ "username").as[String], (json \ "data" \ "password").as[String])
+      case "OKPlayerCredential" => OKPlayerCredential()
+      case "KOPlayerCredential" => KOPlayerCredential()
     }
   }
 
@@ -106,6 +111,9 @@ object MSG_JSON {
     case e : YouJump => "YouJump"
     case e : PlayerJumpingInit => "PlayerJumpingInit"
     case e : PlayerJumpingId => "PlayerJumpingId"
+    case e : PlayerCredential =>"PlayerCredential"
+    case e : OKPlayerCredential => "OKPlayerCredential"
+    case e : KOPlayerCredential => "KOPlayerCredential"
   }
 
 }

@@ -35,6 +35,7 @@ object Global extends GlobalSettings {
     if(!isInitiated){
       createMaps()
       createServer()
+      createUser()
       Conf.set("initiated", true)
     }
 
@@ -97,6 +98,28 @@ object Global extends GlobalSettings {
 
   }
 
+  def createUser(){
+
+    val res1 = User.createUser("admin", "1234")
+    println(res1)
+
+    val res2 = User.loggingToOne("admin", "1234")
+    println(res2)
+
+    val res3 = User.loggingToOne("admin", "12345")
+    println(res3)
+
+    val res4 = User.createUser("toto", "toto")
+    println(res4)
+
+    val res5 = User.createUser("tutu", "tutu")
+    println(res5)
+
+    val res6 = User.createUser("titi", "titi")
+    println(res6)
+
+    println(User.getUserNames())
+  }
 
 
 }
