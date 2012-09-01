@@ -11,7 +11,7 @@ Color = #enumerator of rgb
 
 
 #old stuff to delete
-myCanvasFct = ([x, y]) -> 
+myCanvasFct = ([x, y]) ->
 
 ##################################
 # Model
@@ -254,8 +254,16 @@ $(document).ready ->
       console.log "backbone.sync launched"
       success()
 
-
     try
+
+        global_event = _.clone(Backbone.Events)
+        global_event.on("all", (eventName) ->
+          console.log "global event : " + eventName
+
+        )
+
+        console.log global_event
+        console.log global_event.trigger("toto_event")
 
         ms = new MapSurface({"toto": "titi"})
 
