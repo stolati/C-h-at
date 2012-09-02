@@ -21,14 +21,16 @@ define(['module', 'log', 'heart'], (module, log, heart) ->
   class LinkServer
     waiting_msg : [] #temporary msg waiting connection
     state : LINKSERVER_STATE.CONNECTING
-
-    to_serv_use_msg : module.config().to_serv_use_msg
-    to_serv_rename_msg : module.config().to_serv_rename_msg
-    from_serv_rename : module.config().from_serv_rename
+    heart : null
+    convert : null
 
 
-    constructor: () ->
+    constructor: (heart, convert) ->
       _.bindAll @
+      @heart = heart
+      @convert = convert
+
+      @linkMsg()
       @connect()
 
     connect : (uri = document.location.host) ->
@@ -46,45 +48,130 @@ define(['module', 'log', 'heart'], (module, log, heart) ->
     #connection of server part
     onopen : (evt) ->
       @state = LINKSERVER_STATE.CONNECTED
-      heart.trigger(LINKSERVER_MSG.CONNECTED)
+      @heart.trigger(LINKSERVER_MSG.CONNECTED)
+
+      #send the waiting messages
+      for msg in @waiting_msg
+        @onMsg.apply(@, msg)
+      @waiting_msg = []
 
     onclose : (evt) ->
       @state = LINKSERVER_STATE.NOT_CONNECTED
-      heart.trigger(LINKSERVER_MSG.DISCONNECTED)
+      @heart.trigger(LINKSERVER_MSG.DISCONNECTED)
 
     onmessage : (evt) ->
       msgJson = JSON.parse(evt.data)
       log.info "reception of :", evt.data
-      [type, data] = [msgJson["kind"], msgJson["data"]]
 
-      newName = @from_serv_rename[type]
-      heart.trigger(newName, data)
+      params = @convert.serv2cli(msgJson)
+      @heart.trigger.apply(@heart, params)
 
     onerror : (evt) ->
       @state = LINKSERVER_STATE.ON_ERROR
-      heart.trigger(LINKSERVER_MSG.DISCONNECTED)
+      @heart.trigger(LINKSERVER_MSG.DISCONNECTED)
       log.warn "linkServer closed on error : ", evt
 
     #connection to the client part
-    onAllMsg : (event, args...) ->
-      log.info "linkServer message : #{event}(#{args.join(',')})" #TODO remove when prod
+    onMsg : (params...) ->
+      if this.state != LINKSERVER_STATE.CONNECTED
+        @waiting_msg.push(params)
+        return
 
-      isToUse = event in @to_serv_use_msg
-      nameRename = @to_serv_rename_msg[event]
+      msg = @convert.cli2serv(params)
+      log.debug "sending data : ", msg
+      data = JSON.stringify(msg)
+      @ws.send(data)
 
-      if not isToUse and not nameRename?
-         log.info "don't take into account"
-         return
-
-      name = nameRename or event
-      data = JSON.stringify({kind:name, data : args})
-      log.info "sending data : '#{data}'"
-      ws.send(data)
+    linkMsg : () ->
+      for name in @convert.getListCliNames()
+        @heart.on(name, _.bind(@onMsg, @, name))
 
 
-  sl = _.extend(new LinkServer(), Backbone.Events)
-  sl.on("all", sl.onAllMsg)
 
-  sl
+
+  ###
+  MessageConvertion, because the server have a hash of value, the client have parameters
+  do the convertion between the parameters name - value of the hash
+  ###
+  class MessageConvertion
+    clientName : null
+    argumentNames : null
+    serverName : null
+
+    constructor : (cliPatt, servPatt) ->
+      @serverName = servPatt
+      @exploseCliPatt(cliPatt)
+
+    exploseCliPatt : (cliPatt) ->
+      name_param = /^([\w:]+)\(([\s\w,]*)\)$/
+      param_sep = /\s*,\s*/
+
+      matchRes = cliPatt.match(name_param)
+      if not matchRes? then throw Error("MessageConvertion patt don't match : '#{cliPatt}'")
+      [dummy, @clientName, paramStr] = matchRes
+      @argumentNames = _(paramStr.split(param_sep)).filter( (e) -> not not e)
+
+    servData2cliParam : (servEvent) ->
+      [type, data] = [msgJson["kind"], msgJson["data"]]
+
+      args = (data[name] for name in @argumentNames)
+      args.unshift(@clientName)
+      args
+
+
+    cliParam2servData : (cliParam) ->
+      [name, args...] = cliParam
+      data = {}
+      for name in @argumentNames
+        data[name] = args.shift()
+
+      return {kind : @serverName , data : data}
+
+    @getServDataName : (msg) -> msg["kind"]
+    @getCliParamName : (msg) -> msg[0]
+
+  class MessageConvertionList
+    cli2servHash : {}
+    serv2cliHash : {}
+
+    constructor : (cli2servHash, serv2cliHash) ->
+      @initCli2serv(cli2servHash)
+      @initServ2cli(serv2cliHash)
+
+    initCli2serv : (hash) ->
+      for key, value of hash
+        mc = new MessageConvertion(key, value)
+        @cli2servHash[mc.clientName] = mc
+
+    initServ2cli : (hash) ->
+       for key, value of hash
+         mc = new MessageConvertion(value, key)
+         @serv2cliHash[mc.serverName] = mc
+
+    cli2serv : (msg) ->
+      name = MessageConvertion.getCliParamName(msg)
+      mc = @cli2servHash[name]
+      if not mc? then throw Error("MessageConvertion for the message cli->serv '#{msg}' is not found")
+      mc.cliParam2servData(msg)
+
+    serv2cli : (msg) ->
+      name = MessageConvertion.getServDataName(msg)
+      mc = @serv2cliHash[name]
+      if not mc? then throw Error("MessageConvertion for the message serv->cli '#{msg}' is not found")
+      mc.servData2cliParam(msg)
+
+    getListCliNames: () -> (key for key of @cli2servHash)
+
+
+  convert = new MessageConvertionList( module.config().to_serv, module.config().from_serv)
+  new LinkServer(heart, convert)
+
+  {
+    LINKSERVER_STATE : LINKSERVER_STATE,
+    LINKSERVER_MSG : LINKSERVER_MSG,
+    LinkServer : LinkServer,
+    MessageConvertion : MessageConvertion,
+    MessageConvertionList : MessageConvertionList
+  }
 )
 

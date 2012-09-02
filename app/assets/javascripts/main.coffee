@@ -36,11 +36,10 @@ requirejs.config
         msg_rename :
           'init' : 'login:init'
       linkServer :
-        to_serv_use_msg : ['login:connect']
-        to_serv_rename_msg : #don't need to put to 'to_serv_use_msg' too, those in this place will be taken into account automatically
-          toto : 'tutu'
-        from_serv_rename :
-          titi : 'tral'
+        to_serv :
+          'login:connect(username, password)' : 'PlayerCredential'
+        from_serv :
+          'PlayerCredential' : 'login:connect(toto,titi,tutu)'
 
 
 
@@ -48,7 +47,10 @@ requirejs.config
 #start the main logic
 define(['log', 'external/underscore', 'heart', 'linkServer', 'login'], (log, _, heart, login)->
 
+  log.info "login : ", login
+
   heart.trigger('init')
+  heart.trigger('login:connect', 'toto', '1234')
 
 )
 
