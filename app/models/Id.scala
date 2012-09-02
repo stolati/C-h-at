@@ -1,6 +1,6 @@
 package models
 
-import models.msg_json.MSG_JSON.Id
+import models.msg_json.Id
 import actors.Actor._
 
 object IdGen {

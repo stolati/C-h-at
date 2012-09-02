@@ -6,7 +6,7 @@ import actors.{OutputChannel, Actor}
 import models.ExternalLink.ExternalLink._
 
 
-import models.msg_json.MSG_JSON._
+import models.msg_json._
 
 //messages for between PlayerLink and MapSurface
 case class PlayerJoin(pos : Pos, a : Actor)
@@ -14,6 +14,8 @@ case class Quit(id : Id)
 case class ChangeMap(mapRoom : MapRoom, pos : Pos)
 case class HasIdJump(id : Id)
 
+
+case class SimpleElement(s : String = "toto")
 
 object MapRoom {
 
@@ -40,7 +42,7 @@ object MapRoom {
     )
 
 
-  def getInitBody(pos : Pos) = Body(models.IdGen.genNext(), Id(), pos)
+  def getInitBody(pos : Pos) = Body(models.IdGen.genNext(), Id(), pos.toPosition)
 }
 
 
@@ -52,8 +54,8 @@ class MapRoom(myMap : MapSurface) extends Actor {
   
   def playerMove(id : Id, pos : Pos) {
      val old_body = members(id).b
-     members(id).b = Body(id, old_body.map_id, pos)
-     this.toAll( Player_Move(id, pos) )
+     members(id).b = Body(id, old_body.map_id, pos.toPosition)
+     this.toAll( Player_Move(id, pos.toPosition) )
   }
 
 
@@ -62,11 +64,11 @@ class MapRoom(myMap : MapSurface) extends Actor {
     val member = members(id)
     val old_pos = member.b.pos
 
-    val moveStepValid = old_pos.distance(new_pos) <= 1
+    val moveStepValid = Pos(old_pos).distance(new_pos) <= 1
     val isInside = myMap.isInside(new_pos)
 
     if(!moveStepValid || !isInside) {
-      playerMove(id, old_pos)
+      playerMove(id, Pos(old_pos))
       return
     }
 
@@ -84,7 +86,7 @@ class MapRoom(myMap : MapSurface) extends Actor {
     }
 
     if(hasBlock) {
-      playerMove(id, old_pos)
+      playerMove(id, Pos(old_pos) )
       return
     }
 

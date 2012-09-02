@@ -5,7 +5,7 @@ package models.ExternalLink
  */
 
 import scala.actors._
-import models.msg_json.MSG_JSON
+import models.msg_json._
 import play.api.Play.current //to keep current application in scope
 
 
@@ -20,15 +20,13 @@ abstract trait ExternalLink extends Actor {}
 object WebServicePassif { class WebServiceClosed() extends Exception }
 
 class WebServicePassif(actor : Actor) extends ExternalLink {
-  import play.api.libs.json._
   import play.api.libs.iteratee._
   import play.api.libs.concurrent._
 
-
-  val enumChannel = Enumerator.imperative[JsValue]()
-  val iteChannel = Iteratee.foreach[JsValue]{ event =>
+  val enumChannel = Enumerator.imperative[String]()
+  val iteChannel = Iteratee.foreach[String]{ event =>
     println("ExternalLink.WebServicePassif msg event = ", event)
-    actor ! ExternalLink.FROM_LINK(MSG_JSON.fromJson(event))
+    actor ! ExternalLink.FROM_LINK(Transform.fromJson(event))
   }.mapDone { _ =>
     println("ExternalLink.WebServicePassif close event")
     actor ! ExternalLink.CONNECTION_END(new WebServicePassif.WebServiceClosed())
@@ -41,11 +39,11 @@ class WebServicePassif(actor : Actor) extends ExternalLink {
         exit
       case e : Any =>
         println(this, "from server to client => ", e)
-        enumChannel.push(MSG_JSON.toJsonPlay(e))
+        enumChannel.push(Transform.toJson(e))
     }
   }
 
-  def getPromise(): Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = Akka.future{ (iteChannel, enumChannel) }
+  def getPromise(): Promise[(Iteratee[String,_],Enumerator[String])] = Akka.future{ (iteChannel, enumChannel) }
 }
 
 
@@ -69,7 +67,7 @@ class WebServiceActif(actor : Actor, url: String) extends ExternalLink {
 
     override def onMessage(message: String){
       print("message for wsActif : ", message)
-      actor ! ExternalLink.FROM_LINK(MSG_JSON.fromJson(message))
+      actor ! ExternalLink.FROM_LINK(Transform.fromJson(message))
     }
 
     override def onClose(code : Int, reason : String){
@@ -90,7 +88,7 @@ class WebServiceActif(actor : Actor, url: String) extends ExternalLink {
           exit
         case e : Any if opened =>
           println("sending from websa stuffs", e)
-          ws.send(MSG_JSON.toJson(e))
+          ws.send(Transform.toJson(e))
       }
     }
   }

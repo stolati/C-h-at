@@ -4,7 +4,7 @@ import org.jfarcand.wcs._
 import play.api.libs.json._
 import actors.Actor
 import models.ExternalLink._
-import models.msg_json.MSG_JSON._
+import models.msg_json._
 import models.ExternalLink.ExternalLink.FROM_LINK
 
 

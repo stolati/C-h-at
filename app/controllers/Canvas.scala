@@ -4,7 +4,7 @@ import play.api.mvc._
 import play.api.libs.json._
 import models._
 import models.ExternalLink.WebServicePassif
-import models.msg_json.MSG_JSON.Id
+import models.msg_json._
 
 import com.novus.salat._
 
@@ -16,7 +16,7 @@ object Canvas extends Controller {
     Ok(views.html.canvas("hello"))
   }
   
-  def ws(id : Option[String]) = WebSocket.async[JsValue]{ request =>
+  def ws(id : Option[String]) = WebSocket.async[String]{ request =>
 
     val ca = new PlayerLink()
     val cl = new WebServicePassif(ca)

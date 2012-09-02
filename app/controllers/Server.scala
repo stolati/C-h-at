@@ -8,7 +8,7 @@ import models.ExternalLink.WebServicePassif
 
 object Server extends Controller {
 
-  def ws = WebSocket.async[JsValue]{ request =>
+  def ws = WebSocket.async[String]{ request =>
 
     val ca = new ServerLink()
     val cl = new WebServicePassif(ca)

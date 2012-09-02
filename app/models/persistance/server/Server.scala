@@ -7,9 +7,7 @@ import com.novus.salat.annotations._
 import com.novus.salat.dao._
 import com.mongodb.casbah.Imports._
 import se.radley.plugin.salat._
-import models.ExternalLink._
-import models.msg_json.MSG_JSON._
-import models.ExternalLink.ExternalLink.FROM_LINK
+import models.msg_json._
 
 //keep it !!! see salat
 import models.persistance.mongoContext._
