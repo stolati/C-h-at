@@ -112,22 +112,19 @@ define(['module', 'log', 'heart'], (module, log, heart) ->
       @argumentNames = _(paramStr.split(param_sep)).filter( (e) -> not not e)
 
     servData2cliParam : (servEvent) ->
-      [type, data] = [msgJson["kind"], msgJson["data"]]
-
-      args = (data[name] for name in @argumentNames)
+      args = (msgJson[name] for name in @argumentNames)
       args.unshift(@clientName)
       args
 
-
     cliParam2servData : (cliParam) ->
       [name, args...] = cliParam
-      data = {}
+      data = {'_t' : @serverName}
       for name in @argumentNames
         data[name] = args.shift()
 
-      return {kind : @serverName , data : data}
+      return data
 
-    @getServDataName : (msg) -> msg["kind"]
+    @getServDataName : (msg) -> msg["_t"]
     @getCliParamName : (msg) -> msg[0]
 
   class MessageConvertionList
