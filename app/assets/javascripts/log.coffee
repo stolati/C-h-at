@@ -8,7 +8,7 @@ possible level names :  ALL TRACE DEBUG INFO WARN ERROR FATAL OFF
 ###
 
 
-define(['module', 'external/jquery', 'log4javascript'], (module, $, log4js) ->
+define(['module', 'log4javascript'], (module, log4js) ->
 
   [log_level, log_type] = [module.config().log_level, module.config().log_type]
 

@@ -20,6 +20,14 @@ case class Position(x : Double, y : Double) extends Msg
 case class MapSurfaceVisible(content : Seq[Seq[MapElementVisible]]) extends Msg
 case class MapElementVisible(code : String) extends Msg
 
+//Client connection
+case class PlayerCredential(username : String, password : String) extends Msg
+case class OKPlayerCredential() extends Msg
+case class KOPlayerCredential(msg : String) extends Msg
+case class GetPlayerList() extends Msg
+case class PlayerList(content : List[String]) extends Msg
+
+
 
 //client -> server class
 case class Me_Move(pos : Position) extends Msg
@@ -39,10 +47,6 @@ case class YouJump(url : String) extends Msg
 case class PlayerJumpingInit(mapName : String, pos : Position) extends Msg
 case class PlayerJumpingId(id : Id) extends Msg
 
-//credential stuffs
-case class PlayerCredential(username : String, password : String) extends Msg
-case class OKPlayerCredential() extends Msg
-case class KOPlayerCredential() extends Msg
 
 
 

@@ -112,7 +112,7 @@ define(['module', 'log', 'heart'], (module, log, heart) ->
       @argumentNames = _(paramStr.split(param_sep)).filter( (e) -> not not e)
 
     servData2cliParam : (servEvent) ->
-      args = (msgJson[name] for name in @argumentNames)
+      args = (servEvent[name] for name in @argumentNames)
       args.unshift(@clientName)
       args
 

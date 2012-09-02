@@ -18,17 +18,19 @@ abstract class PlayerLinkState {
 class PlayerNotConnected(pl : PlayerLink) extends PlayerLinkState {
 
   def act(a : Any) = a match {
+    case FROM_LINK(GetPlayerList()) =>
+      pl.wsLink.get ! PlayerList(User.getUserNames())
+
     case FROM_LINK(PlayerCredential(username, password)) =>
-      println("trying to connect with " + username + " and pass " + password)
 
-      //val a = Alpha(x = "hello world")
-      //println(a)
-      //val dbo = grater[Alpha].asDBObject(a)
-      //println(dbo)
-      //val a_* = grater[Alpha].asObject(dbo)
-      //println(a_*)
+      val user = User.loggingToOne(username, password)
 
-
+      if(user == None){
+        pl.wsLink.get ! KOPlayerCredential("bad stuff here")
+      } else {
+        pl.wsLink.get ! OKPlayerCredential()
+        //TODO change state
+      }
 
     //case FROM_LINK(PlayerCredential(username, password)) =>
     //  val user = models.persistance.User.loggingToOne(username, password)
