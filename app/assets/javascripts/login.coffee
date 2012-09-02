@@ -30,7 +30,7 @@ define(['log', 'heart'], (log, heart) ->
 
   class LoginModel extends Backbone.Model
     defaults:
-      name : "toto" #TODO remove and set to nothing (or get the cookie info)
+      name : "" #TODO remove and set to nothing (or get the cookie info)
       heart : heart
       state : LOGIN_STATUS.BEFORE_INIT
       listNames : []
@@ -60,6 +60,7 @@ define(['log', 'heart'], (log, heart) ->
   class LoginView extends Backbone.View
     className : 'div'
 
+    #TODO do the focus and enter stuff
     template : _.template('
       <div   class="login_err_div" class="err_msg"><%= msg %></div>
       <input class="login_input_txt" type="text"  value="<%= name %>"/><br/>

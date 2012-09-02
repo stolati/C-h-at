@@ -113,6 +113,7 @@ define(['module', 'log', 'heart'], (module, log, heart) ->
 
     servData2cliParam : (servEvent) ->
       args = (servEvent[name] for name in @argumentNames)
+      if _(args).any( (e) -> not e? ) then throw new Error("undefined element for #{servEvent} with name : #{@clientName} / #{@serverName}")
       args.unshift(@clientName)
       args
 
@@ -148,13 +149,13 @@ define(['module', 'log', 'heart'], (module, log, heart) ->
     cli2serv : (msg) ->
       name = MessageConvertion.getCliParamName(msg)
       mc = @cli2servHash[name]
-      if not mc? then throw Error("MessageConvertion for the message cli->serv '#{msg}' is not found")
+      if not mc? then throw Error("MessageConvertion for the message cli->serv '#{msg}' with name '#{name}' is not found")
       mc.cliParam2servData(msg)
 
     serv2cli : (msg) ->
       name = MessageConvertion.getServDataName(msg)
       mc = @serv2cliHash[name]
-      if not mc? then throw Error("MessageConvertion for the message serv->cli '#{msg}' is not found")
+      if not mc? then throw Error("MessageConvertion for the message serv->cli '#{msg}' with name '#{name}' is not found")
       mc.servData2cliParam(msg)
 
     getListCliNames: () -> (key for key of @cli2servHash)

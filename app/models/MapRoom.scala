@@ -64,11 +64,11 @@ class MapRoom(myMap : MapSurface) extends Actor {
     val member = members(id)
     val old_pos = member.b.pos
 
-    val moveStepValid = Pos(old_pos).distance(new_pos) <= 1
+    val moveStepValid = Pos.fromPosition(old_pos).distance(new_pos) <= 1
     val isInside = myMap.isInside(new_pos)
 
     if(!moveStepValid || !isInside) {
-      playerMove(id, Pos(old_pos))
+      playerMove(id, Pos.fromPosition(old_pos))
       return
     }
 
@@ -86,7 +86,7 @@ class MapRoom(myMap : MapSurface) extends Actor {
     }
 
     if(hasBlock) {
-      playerMove(id, Pos(old_pos) )
+      playerMove(id, Pos.fromPosition(old_pos) )
       return
     }
 

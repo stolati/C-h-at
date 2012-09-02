@@ -53,6 +53,7 @@ requirejs.config
           'KOPlayerCredential' : 'login:failed(msg)'
           'OKPlayerCredential' : 'login:success()'
           'PlayerList' : 'login:list(content)'
+          'CurrentMap' : 'map:init(your_body, others_body, map)'
 
 
 #start the main logic
@@ -61,7 +62,7 @@ define(['log', 'heart', 'linkServer', 'login'], (log, heart, linkServ, login)->
   log.info "login : ", login
 
   heart.trigger('init')
-  heart.trigger('login:connect', 'toto', '1234')
+  heart.trigger('login:connect', 'toto', 'toto')
 
 )
 

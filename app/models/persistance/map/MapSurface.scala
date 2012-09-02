@@ -25,11 +25,10 @@ import models.persistance.mongoContext._
 
 case class Pos(x : Double, y : Double){
   def distance(p: Pos) = math.abs(this.x - p.x) + math.abs(this.y - p.y)
-  def this(pos : Position)  = this(pos.x, pos.y)
   def toPosition = Position(x, y)
 }
 object Pos {
-  def apply(pos : Position) = new Pos(pos)
+   def fromPosition(pos : Position) = Pos(pos.x, pos.y)
 }
 
 case class Size(width : Int, height : Int){

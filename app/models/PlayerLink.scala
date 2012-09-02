@@ -15,7 +15,9 @@ abstract class PlayerLinkState {
   def act(a : Any) : Any
 }
 
-class PlayerNotConnected(pl : PlayerLink) extends PlayerLinkState {
+
+
+case class PlayerNotConnected(pl : PlayerLink) extends PlayerLinkState {
 
   def act(a : Any) = a match {
     case FROM_LINK(GetPlayerList()) =>
@@ -24,54 +26,51 @@ class PlayerNotConnected(pl : PlayerLink) extends PlayerLinkState {
     case FROM_LINK(PlayerCredential(username, password)) =>
 
       val user = User.loggingToOne(username, password)
+      //TODO check if the user is not already connected
+      //To that, use the User as a Actor
+      //TODO the loggingToOne should return a msg :
+      // - user already connected
+      // - user don't exists
+      // - bad password
 
       if(user == None){
         pl.wsLink.get ! KOPlayerCredential("bad stuff here")
       } else {
         pl.wsLink.get ! OKPlayerCredential()
-        //TODO change state
+        pl.setState( PlayerConnected(pl, user.get) )
       }
 
-    //case FROM_LINK(PlayerCredential(username, password)) =>
-    //  val user = models.persistance.User.loggingToOne(username, password)
-    //  if(user == None){
-    //    pl.wsLink.get ! KOPlayerCredential()
-    //  } else {
-    //    pl.wsLink.get ! OKPlayerCredential()
-    //    pl.setState( new PlayerConnected(pl, user.get)  )
-    //  }
+      //TODO player creating
   }
 
 }
 
 
 
-class PlayerConnected(pl : PlayerLink, user : User) extends PlayerLinkState {
+case class PlayerConnected(pl : PlayerLink, user : User) extends PlayerLinkState {
 
   def act(a : Any) = a match {
-    case _ => Nil
+    case FROM_LINK(Ask_Map()) =>
+      val (def_name, def_pos) = MapRoom.defaultMapInfo
 
-    //case FROM_LINK(Ask_Map()) =>
+      val name = user.mapName.getOrElse(def_name)
+      val pos = user.curPos.getOrElse(def_pos)
 
-    //  //TODO can test if the user is on a map before
-    //  val (mapName, defPos) = if(user.mapName != None) (user.mapName.get, user.curPos.get) else MapRoom.defaultMapInfo
-    //  val map = MapRoom.getMap(mapName)
+      val map = MapRoom.getMap(name)
+      val curMapInfo = (map !? PlayerJoin(pos, pl)) match { case e:CurrentMap => e }
 
-    //  val curMap = map !? PlayerJoin(defPos, pl)
-//  //    pl.setState( new )
-//
-//  //  case cm : CurrentMap => //response to PlayerJoin
-//  //    body = Some(cm.your_body)
-//  //    wsLink.get ! cm
+      pl.wsLink.get ! curMapInfo
+
+      pl.setState( PlayerOnMap(pl, user, curMapInfo.your_body, map) )
   }
 
 }
 
-class MapLinked(pl : PlayerLink, user : User, body : Body, mapLink : Actor) extends PlayerLinkState {
+
+case class PlayerOnMap(pl : PlayerLink, user : User, body : Body, mapLink : Actor) extends PlayerLinkState {
 
   def act(a : Any) = a match {
-    case _ => Nil
-
+    case e : Any => println("=>>>>>> " + e.toString)
   }
 
 }

@@ -22,7 +22,7 @@ define(['module', 'log', 'external/backbone', 'external/underscore'], (module, l
 
     #callback for each msg
     onAllMsg : (event, args...) ->
-      log.info "Global message : #{event}(#{args.join(',')})" #TODO remove when prod
+      log.info "Global message : ", event, args #TODO remove when prod
 
       newName = @names[event]
       if newName?
