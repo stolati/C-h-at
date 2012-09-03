@@ -27,7 +27,9 @@ requirejs.config
         'external/jquery' : { exports : '$' }
         'external/jquery_ui':
             deps : ['external/jquery']
-            exports : '$'
+            exports : 'window' #dummy
+        'external/kinetic':
+            exports : 'Kinetic'
         'log4javascript' : { exports : 'log4javascript' }
 
     deps : ['external/jquery_ui', 'external/backbone', 'external/json2'] #TODO puts modernizr as dependence (and remove json2)
@@ -43,6 +45,9 @@ requirejs.config
           'init' : 'login:init'
           'login:success' : 'canvas:getMap'
 
+      play_map :
+        view_step : 10
+
       linkServer :
         to_serv :
           'login:connect(username, password)' : 'PlayerCredential'
@@ -53,13 +58,19 @@ requirejs.config
           'KOPlayerCredential' : 'login:failed(msg)'
           'OKPlayerCredential' : 'login:success()'
           'PlayerList' : 'login:list(content)'
-          'CurrentMap' : 'map:init(your_body, others_body, map)'
+          'CurrentMap' : 'map:content(your_body, others_body, map)'
+
+
 
 
 #start the main logic
-define(['log', 'heart', 'linkServer', 'login'], (log, heart, linkServ, login)->
+define(['log', 'heart', 'linkServer', 'login', 'play_map'], (log, heart, linkServ, login, play_map)->
 
   log.info "login : ", login
+
+  pmm = new play_map.PlayMapModel()
+  new play_map.PlayMapView({model:pmm})
+
 
   heart.trigger('init')
   heart.trigger('login:connect', 'toto', 'toto')
