@@ -28,24 +28,23 @@ case class PlayerList(content : List[String]) extends Msg
 //TODO case class PlayerNotCreated(msg : String) extends Msg
 
 //Map Info
-case class Ask_Map() extends Msg
 case class CurrentMap(your_body : Body, others_body : Seq[Body], map : MapSurfaceVisible) extends Msg
 
 case class MapSurfaceVisible(content : Seq[Seq[MapElementVisible]]) extends Msg
 case class MapElementVisible(code : String) extends Msg
 
+case class YouQuit() extends Msg
 
-
-//client -> server class
+//Moving Info
 case class Me_Move(pos : Position) extends Msg
-case class Me_JumpingId(id : Id) extends Msg
-
-//server -> client class
-case class Player_Move(id : Id, pos : Position) extends Msg
+case class Player_Status(id : Id, pos : Position) extends Msg
 case class Player_Join(id : Id, pos : Position) extends Msg
 case class Player_Quit(id : Id) extends Msg
 
-case class YouQuit() extends Msg
+case class Me_JumpingId(id : Id) extends Msg
+
+//server -> client class
+
 case class YouJump(url : String) extends Msg
 
 //server -> server

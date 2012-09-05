@@ -9,9 +9,6 @@ define events : login:init, login:success, login:failed
 
 define(['log', 'heart'], (log, heart) ->
 
-
-  log.info "login bebing"
-
   LOGIN_STATUS =
     BEFORE_INIT : "BEFORE_INIT"
     INIT        : "INIT"
@@ -83,8 +80,6 @@ define(['log', 'heart'], (log, heart) ->
       })
 
     render : () ->
-      log.info "render LoginView"
-      log.info "state of the model : " + @model.get('state')
       state = @model.get('state')
 
       switch state
@@ -113,7 +108,6 @@ define(['log', 'heart'], (log, heart) ->
   lm = new LoginModel()
   lv = new LoginView({model: lm})
 
-  log.info("login end")
   return {
     LoginModel : LoginModel
     LoginView : LoginView

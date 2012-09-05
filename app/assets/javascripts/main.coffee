@@ -43,24 +43,24 @@ requirejs.config
       heart :
         msg_rename :
           'init' : 'login:init'
-          'login:success' : 'canvas:getMap'
 
       play_map :
-        view_step : 10
+        view_step : 15
 
       linkServer :
         to_serv :
           'login:connect(username, password)' : 'PlayerCredential'
           'login:get_list()' : 'GetPlayerList'
-          'canvas:getMap()' : 'Ask_Map'
+          'map:me_moving(pos)' : 'Me_Move'
 
         from_serv :
           'KOPlayerCredential' : 'login:failed(msg)'
           'OKPlayerCredential' : 'login:success()'
           'PlayerList' : 'login:list(content)'
           'CurrentMap' : 'map:content(your_body, others_body, map)'
-
-
+          'Player_Status' : 'map:player_status(id, pos)'
+          'Player_Join' : 'map:player_join(id, pos)'
+          'Player_Quit' : 'map:player_quit(id)'
 
 
 #start the main logic
@@ -73,7 +73,15 @@ define(['log', 'heart', 'linkServer', 'login', 'play_map'], (log, heart, linkSer
 
 
   heart.trigger('init')
+
+  #from there, it's for dev purpose
   heart.trigger('login:connect', 'toto', 'toto')
+
+  heart.on('map:player_join', ()->
+    _.defer( ()->
+      heart.trigger('map:me_moving', {_t:'Position', x : 16.5, y : 6 })
+    )
+  )
 
 )
 

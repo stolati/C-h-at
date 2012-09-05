@@ -55,7 +55,7 @@ class MapRoom(myMap : MapSurface) extends Actor {
   def playerMove(id : Id, pos : Pos) {
      val old_body = members(id).b
      members(id).b = Body(id, old_body.map_id, pos.toPosition)
-     this.toAll( Player_Move(id, pos.toPosition) )
+     this.toAll( Player_Status(id, pos.toPosition) )
   }
 
 
@@ -117,17 +117,13 @@ class MapRoom(myMap : MapSurface) extends Actor {
         toAll( Player_Join(bi.b.id, bi.b.pos) )
 
       case Quit(id) =>
-        try {
-          val m = members(id)
-          members = members - id
+        val pq = Player_Quit(id)
+        members -= id
+        members.foreach{ _._2.actor ! pq }
 
-          //m.actor ! Quit(id)
-          toAll(Player_Quit(id))
-        } catch {
-          case _ => println("in quitting, already not here")
-        }
-
-      case (id : Id, Me_Move(new_pos : Pos)) => gotMove(id, new_pos)
+      case (id : Id, Me_Move(new_pos : Position)) =>
+        println("MapRoom have Me_Move")
+        gotMove(id, Pos.fromPosition(new_pos))
 
       case x : Any => println("MapRoom receive : ", x)
     }

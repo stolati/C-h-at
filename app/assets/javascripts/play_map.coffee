@@ -10,6 +10,9 @@ define events : login:init, login:success, login:failed
 
 define(['module', 'log', 'heart', 'external/kinetic'], (module, log, heart, kinetic) ->
 
+  pos2Position = (pos) ->
+    {_t:'Position', x : pos[0], y : pos[1]}
+
 
   Color = #enumerator of rgb
     white : [255, 255, 255]
@@ -27,10 +30,14 @@ define(['module', 'log', 'heart', 'external/kinetic'], (module, log, heart, kine
     MAP_CONTENT : "map:content"
     MAP_QUIT : "map:quit"
 
+    ME_MOVING : "map:me_moving"
+
+    PLAYER_MOVE : "map:player_move"
+    PLAYER_JOIN : "map:player_join"
     PLAYER_STATUS : "map:player_status"
     PLAYER_QUIT : "map:player_quit"
 
-    ME_MOVING : "map:me_moving"
+
 
 
   class MapElement extends Backbone.Model
@@ -70,8 +77,13 @@ define(['module', 'log', 'heart', 'external/kinetic'], (module, log, heart, kine
       _.bindAll @
       heart.on(MAP_MSG.MAP_CONTENT, @setMapContent)
       heart.on(MAP_MSG.MAP_QUIT, @mapQuit)
+
+      #same function for join and status
       heart.on(MAP_MSG.PLAYER_STATUS, @playerStatus)
+      heart.on(MAP_MSG.PLAYER_JOIN, @playerStatus)
+
       heart.on(MAP_MSG.PLAYER_QUIT, @playerQuit)
+
 
     ###############
     # response to msg
@@ -95,11 +107,12 @@ define(['module', 'log', 'heart', 'external/kinetic'], (module, log, heart, kine
     mapQuit : () ->
       log.debug "map quit"
 
-    playerStatus : () ->
+    playerStatus : (id, pos) ->
       log.debug "playerStatus"
+      @setPlayer(id['id'], [pos['x'], pos['y']])
 
-    playerQuit : () ->
-      log.debug "playerQuit"
+    playerQuit : (id) ->
+      @rmPlayer(id['id'])
 
 
     ###############
@@ -127,20 +140,28 @@ define(['module', 'log', 'heart', 'external/kinetic'], (module, log, heart, kine
       @set({mainPlayer:new MapPlayer({posX:x, posY:y, _id:id})})
 
     setPlayer: (id, [x, y]) ->
+      log.debug "setPlayer(#{id}, #{x}, #{y})"
       [mainPlayer, players] = [@.get("mainPlayer"), @.get("players")]
       if id == mainPlayer?.id
+        log.debug "is from main player"
         el = mainPlayer
       else if players.get(id)
+        log.debug "is from another player"
         el = players.get(id)
+      else if players.get(id)
       else
+        log.debug "is from a player not known"
         el = new MapPlayer({_id:id})
         players.add(el)
 
       el.setPos(x, y)
+      @trigger("change:mainPlayer")
+      @trigger("change:players")
 
     rmPlayer: (id) ->
       players = @get("players")
       players.remove(players.get(id))
+      @trigger("change:players")
 
     moveAction: (where) ->
       log.debug "moving to ", where
@@ -160,13 +181,7 @@ define(['module', 'log', 'heart', 'external/kinetic'], (module, log, heart, kine
 
       @get("mainPlayer").setPos(curX, curY)
       @trigger("change:mainPlayer")
-      #heart.trigger(MAP_MSG.ME_MOVING, )##TODO @canvasFct([curX, curY])
-
-
-
-
-
-
+      heart.trigger(MAP_MSG.ME_MOVING, pos2Position([curX, curY]))
 
   #class CanvasSquare extends Backbone.View
   #  color : Color.blue
@@ -254,6 +269,9 @@ define(['module', 'log', 'heart', 'external/kinetic'], (module, log, heart, kine
           #set mapX mapY
           @$el.show()
           @render_ok = true
+
+          #initialize the view
+
           @render()
 
       log.debug "new status of PlayMapModel : ", status
@@ -293,20 +311,20 @@ define(['module', 'log', 'heart', 'external/kinetic'], (module, log, heart, kine
       [w, h] = @model.get("mapSize")
 
       for [x, y] in @model.get("mapWalls").map((el) -> el.getPos())
-        @drawSquare(x, y, "white")
+        @drawSquare(@brick_layer, x, y, "white")
 
       [mainPlayer, players] = [@model.get("mainPlayer"), @model.get("players")]
 
       for [x, y] in players.map((el) -> el.getPos())
-        @drawSquare(x, y, "green")
+        @drawSquare(@brick_layer, x, y, "green")
 
       [curP_x, curP_y] = mainPlayer.getPos()
-      @drawSquare(curP_x, curP_y, "red")
+      @drawSquare(@brick_layer, curP_x, curP_y, "red")
 
       @stage.draw()
 
-    drawSquare: (x, y, color) ->
-      @brick_layer.add(new Kinetic.Rect({
+    drawSquare: (element, x, y, color) ->
+      element.add(new Kinetic.Rect({
         x : @step * x + 1,
         y : @step * y + 1,
         width : @step,
@@ -318,85 +336,18 @@ define(['module', 'log', 'heart', 'external/kinetic'], (module, log, heart, kine
     move: (key_event) ->
       @model.moveAction( {37:"left", 39:"right", 38:"up", 40:"down"}[key_event.keyCode] )
 
-  #
-  #$(document).ready ->
-  #
-  #    Backbone.sync = (method, model, success, error) ->
-  #      console.log "backbone.sync launched"
-  #      success()
-  #
-  #    try
-  #
-  #        global_event = _.clone(Backbone.Events)
-  #        global_event.on("all", (eventName) ->
-  #          console.log "global event : " + eventName
-  #
-  #        )
-  #
-  #        document.cd = cd
-  #        document.ms = ms
-  #
-  #        processing = new Processing(cd.el, cd.myCanvas_draw)
-  #
-  #        console.log "toto"
-  #
-  #        wsUri = document.location.host
-  #        wsUri = "ws://#{wsUri}/ws" + document.location.search
-  #
-  #        ws = new WebSocket(wsUri)
-  #        ws.onopen = (evt) ->
-  #         console.log evt
-  #         ws.send(JSON.stringify({kind:'Ask_Map', data: {}}))
-  #
-  #        ws.onclose = (evt) -> console.log evt
+
+
   #        ws.onmessage = (evt) ->
   #          console.log "reception of : ", evt.data
   #          msgJson = JSON.parse(evt.data)
   #          [type, data] = [msgJson["kind"], msgJson["data"]]
   #
   #          switch type
-  #
-  #            when "Player_Move" then ms.setPlayer(data["id"]["id"], [data["pos"]["x"], data["pos"]["y"]])
   #            when "Player_Join" then ms.setPlayer(data["id"]["id"], [data["pos"]["x"], data["pos"]["y"]])
   #            when "Player_Quit" then ms.rmPlayer(data["id"]["id"])
   #            when "YouQuit" then ms.init_empty()
   #            when "YouJump" then document.location.href = data["url"]
-  #
-  #            else
-  #              console.log "no handler for that : "
-  #              console.log evt.data
-  #
-  #        ws.onerror = (evt) -> console.log evt
-  #
-  #        i = 0
-  #
-  #        $.processing = processing
-  #
-  #    catch error
-  #        console.log error
-  #
-
-  #  render : () ->
-  #    log.info "render LoginView"
-  #    log.info "state of the model : " + @model.get('state')
-  #    state = @model.get('state')
-
-  #    switch state
-  #      when MAP_STATUS.BEFORE_INIT then @setViewStatus(false, false, true)
-  #      when MAP_STATUS.SUCCESS then @setViewStatus(false, false, false)
-  #      when MAP_STATUS.INIT then @setViewStatus(true, true, true)
-  #      when MAP_STATUS.WAIT_CHECK then @setViewStatus(true, false, true)
-  #      when MAP_STATUS.FAIL then @setViewStatus(true, true, true)
-
-  #      else
-  #        throw new Error("Status [#{@model.get('state')}] not known")
-
-  #    if @$el.parents().size() != 0 and not toLink then @remove()
-
-  #  updateList : () ->
-  #    @$('.login_input_txt').autocomplete({minLength : 1, source : @model.get('listNames')})
-
-  #  connect : () -> @model.connect( @$('.login_input_txt').val(), @$('.login_input_pass').val() )
 
 
 
@@ -404,8 +355,6 @@ define(['module', 'log', 'heart', 'external/kinetic'], (module, log, heart, kine
     PlayMapModel : PlayMapModel
     PlayMapView : PlayMapView
     Color : Color
-
-
   }
 
 )

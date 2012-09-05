@@ -43,8 +43,6 @@ define(['module', 'log4javascript'], (module, log4js) ->
   log.addAppender(appender)
   log.setLevel(level)
 
-  log.debug("log created with level '#{log_level}' to output '#{log_type}')")
   log
-
 )
 
