@@ -9,7 +9,8 @@ logLevel := Level.Warn
 // The Typesafe repository 
 resolvers ++= Seq(
   "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/",
-  "Typesafe Snapshots" at "http://repo.typesafe.com/typesafe/snapshots/"
+  "Typesafe Snapshots" at "http://repo.typesafe.com/typesafe/snapshots/",
+  "OSS Snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/"
 )
 //think about adding thoses repositories :
 //https://oss.sonatype.org/content/groups/scala-tools/

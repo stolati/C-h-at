@@ -7,11 +7,10 @@ object ApplicationBuild extends Build {
     val appName         = "C(h)at"
     val appVersion      = "1.0-SNAPSHOT"
 
-
     val appDependencies = Seq(
       //"org.jfarcand" % "wcs" % "1.2", //websocket lib for scala
       "se.radley" %% "play-plugins-salat" % "1.0.7", //mongoDB serialisation
-      //"net.lif-tw-eb" %% "l-ift-js-on" % "2.5", //json serializer-deserializer
+      "net.liftweb" %% "lift-json" % "2.4-M5", //json serializer-deserializer
       //apache commons
       "commons-io" % "commons-io" % "2.3",
       "commons-codec" % "commons-codec" % "1.6",
@@ -21,8 +20,12 @@ object ApplicationBuild extends Build {
 
     val main = PlayProject(appName, appVersion, appDependencies, mainLang = SCALA).settings(
       routesImport += "se.radley.plugin.salat.Binders._",
-      templatesImport += "org.bson.types.ObjectId"
+      templatesImport += "org.bson.types.ObjectId",
+
+      resolvers += "OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
+
     )
+
 
 
 }
