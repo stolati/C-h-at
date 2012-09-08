@@ -11,7 +11,10 @@ resolvers ++= Seq(
   "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/",
   "Typesafe Snapshots" at "http://repo.typesafe.com/typesafe/snapshots/"
 )
+//think about adding thoses repositories :
+//https://oss.sonatype.org/content/groups/scala-tools/
+//https://oss.sonatype.org/content/repositories/snapshots/
 
 // Use the Play sbt plugin for Play projects
-addSbtPlugin("play" % "sbt-plugin" % "2.0.2")
+addSbtPlugin("play" % "sbt-plugin" % "2.0.3")
 
