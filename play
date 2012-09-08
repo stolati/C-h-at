@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+projectHome="$PWD"
+extApp="$projectHome/external_app"
+playName="play-2.0.3"
+playHome="$extApp/$playName"
+
+"$playHome/play" "$@"
+#__EOF__

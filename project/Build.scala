@@ -11,7 +11,7 @@ object ApplicationBuild extends Build {
     val appDependencies = Seq(
       //"org.jfarcand" % "wcs" % "1.2", //websocket lib for scala
       "se.radley" %% "play-plugins-salat" % "1.0.7", //mongoDB serialisation
-      //"net.liftweb" %% "lift-json" % "2.5", //json serializer-deserializer
+      //"net.lif-tw-eb" %% "l-ift-js-on" % "2.5", //json serializer-deserializer
       //apache commons
       "commons-io" % "commons-io" % "2.3",
       "commons-codec" % "commons-codec" % "1.6",

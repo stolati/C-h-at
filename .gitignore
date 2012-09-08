@@ -6,6 +6,7 @@ hs_err_pid*.log
 tmp
 dist
 bin
+external_app
 .history
 .classpath
 .project

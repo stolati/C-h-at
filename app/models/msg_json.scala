@@ -58,7 +58,7 @@ case class PlayerJumpingId(id : Id) extends Msg
 object Transform {
   //for more info (and maybe less speak stuff) : http://www.scalafied.com/105/default-and-customized-lift-json-type-hints
 
-  case class ComplexTypeHints(packageName : String, className : String) extends net.liftweb.json.TypeHints {
+  case class ComplexTypeHints(packageName : String, className : String) extends net.li-ftwe-b.json.TypeHints {
 
     import org.clapper.classutil.ClassFinder
     import collection.JavaConversions._
@@ -87,8 +87,8 @@ object Transform {
     def classFor(hint: String) = hints find (hintFor(_) == hint)
   }
 
-  import net.liftweb.json._
-  import net.liftweb.json.Serialization._
+  import net.li-ftw-eb.json._
+  import net.li-ftw-eb.json.Serialization._
 
   implicit val formats = new Formats {
     val dateFormat = DefaultFormats.lossless.dateFormat
