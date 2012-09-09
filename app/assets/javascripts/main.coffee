@@ -44,8 +44,10 @@ requirejs.config
         msg_rename :
           'init' : 'login:init'
 
-      play_map :
-        view_step : 15
+      play_map : {view_step : 15}
+      map_floor : {view_step : 15}
+      map_player : {view_step : 15}
+      map_users : {view_step : 15}
 
       linkServer :
         to_serv :
@@ -57,19 +59,30 @@ requirejs.config
           'KOPlayerCredential' : 'login:failed(msg)'
           'OKPlayerCredential' : 'login:success()'
           'PlayerList' : 'login:list(content)'
-          'CurrentMap' : 'map:content(your_body, others_body, map)'
+          'CurrentMap' : 'map:init(your_body, others_body, map)'
           'Player_Status' : 'map:player_status(id, pos)'
           'Player_Join' : 'map:player_join(id, pos)'
           'Player_Quit' : 'map:player_quit(id)'
 
 
 #start the main logic
-define(['log', 'heart', 'linkServer', 'login', 'play_map'], (log, heart, linkServ, login, play_map)->
+define(['log', 'heart', 'linkServer', 'login', 'play_map', 'map_floor', 'map_player', 'map_users'],
+(log, heart, linkServ, login, play_map, map_floor, map_player, map_users)->
 
   log.info "login : ", login
 
   pmm = new play_map.PlayMapModel()
-  new play_map.PlayMapView({model:pmm})
+  pmv = new play_map.PlayMapView({model:pmm})
+
+  mfm = new map_floor.MapFloorModel()
+  new map_floor.MapFloorView({model:mfm, mapMain: pmv})
+
+  mum = new map_users.MapUsersModel()
+  new map_users.MapUsersView({model:mum, mapMain : pmv})
+
+  mpm = new map_player.MapPlayerModel()
+  new map_player.MapPlayerView({model:mpm, mapMain : pmv})
+
 
 
   heart.trigger('init')

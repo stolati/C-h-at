@@ -5,6 +5,7 @@
 # Home page
 GET     /hello                      controllers.Hello.index
 GET     /canvas                     controllers.Canvas.index
+GET     /2canvas                    controllers.Canvas.dual
 GET     /ws                         controllers.Canvas.ws(id:Option[String])
 GET     /serv_ws                    controllers.Server.ws
 

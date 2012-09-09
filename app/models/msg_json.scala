@@ -36,7 +36,7 @@ case class MapElementVisible(code : String) extends Msg
 case class YouQuit() extends Msg
 
 //Moving Info
-case class Me_Move(pos : Position) extends Msg
+case class Me_Move(pos : Position) extends Msg //the player sending "I am moving" info
 case class Player_Status(id : Id, pos : Position) extends Msg
 case class Player_Join(id : Id, pos : Position) extends Msg
 case class Player_Quit(id : Id) extends Msg

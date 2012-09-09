@@ -15,6 +15,8 @@ object Canvas extends Controller {
   def index = Action {
     Ok(views.html.canvas("hello"))
   }
+
+  def dual = Action { Ok(views.html.frameCanvas()) }
   
   def ws(id : Option[String]) = WebSocket.async[String]{ request =>
 
