@@ -4,7 +4,7 @@ import actors.Actor
 import models.ExternalLink.ExternalLink._
 import persistance.map._
 import akka.actor.IO.Connected
-import persistance.User
+import persistance._
 
 import com.novus.salat._
 import com.novus.salat.annotations._
@@ -45,13 +45,25 @@ case class PlayerNotConnected(pl : PlayerLink) extends PlayerLinkState {
 
       //TODO player creating
       //TODO when outHook, free the database
+
+    case FROM_LINK(PlayerJumpingId(id)) =>
+      println("PlayerNotConnected got PlayerJumpingId")
+
+      val user = TempUser.getUser(id.id)
+
+      if(user == None){
+        pl.ws ! KOPlayerCredential("bad ID given")
+      } else {
+        pl.ws ! OKPlayerCredential()
+        pl.setState( PlayerConnected(pl, user.get, true) )
+      }
   }
 
 }
 
 
 
-case class PlayerConnected(pl : PlayerLink, user : User, automap : Boolean = false) extends PlayerLinkState {
+case class PlayerConnected(pl : PlayerLink, user : AbstractUser, automap : Boolean = false) extends PlayerLinkState {
 
   override def inHook(){
     //the first thing we try to do is connect ourselves to the first map
@@ -65,8 +77,8 @@ case class PlayerConnected(pl : PlayerLink, user : User, automap : Boolean = fal
   def connectDefaultMap(){
     val (def_name, def_pos) = MapRoom.defaultMapInfo
 
-    val name = user.mapName.getOrElse(def_name)
-    val pos = user.curPos.getOrElse(def_pos)
+    val name = user.getMapName.getOrElse(def_name)
+    val pos = user.getPos.getOrElse(def_pos)
 
     val map = MapRoom.getMap(name)
     val curMapInfo = (map !? PlayerJoin(pos, pl)) match { case e:CurrentMap => e }
@@ -78,7 +90,7 @@ case class PlayerConnected(pl : PlayerLink, user : User, automap : Boolean = fal
 
 }
 
-case class PlayerOnMap(pl : PlayerLink, user : User, body : Body, mapLink : Actor) extends PlayerLinkState {
+case class PlayerOnMap(pl : PlayerLink, user : AbstractUser, body : Body, mapLink : Actor) extends PlayerLinkState {
 
   override def act(a : Any) = a match {
     case FROM_LINK(mm : Me_Move) => mapLink ! (body.id, mm)
@@ -87,15 +99,47 @@ case class PlayerOnMap(pl : PlayerLink, user : User, body : Body, mapLink : Acto
     case Player_Quit(id) =>
       assert(id != body.id)
       pl.ws ! Player_Quit(id)
-  }
+    case ChangeMap(map, pos) =>
+      //quit the current map
+      mapLink ! Quit(body.id) //will be done while outHook
+      pl.ws ! Player_Quit(body.id)
 
-  override def outHook(){
-    mapLink ! Quit(body.id)
-    //pl.setState(PlayerConnected(pl, user)) => we should already be going this way
+      //search for the next map
+      val curMapInfo = (map !? PlayerJoin(pos, pl)) match { case e:CurrentMap => e }
+      pl.ws ! curMapInfo
+      pl.setState( PlayerOnMap(pl, user, curMapInfo.your_body, map) )
+
+    case FloorServerJump(servName, mapName, pos) =>
+      //quit the current map
+      mapLink ! Quit(body.id) //will be done while outHook
+      pl.ws ! Player_Quit(body.id)
+
+      //get infos from server
+      val servLink = models.Servers.getServerLink(servName, pl)
+      pl.setState( ChangingServer(pl, user, servLink, FloorServerJump(servName, mapName, pos), servName) )
   }
 
   override def connectionEnd(ex : Exception) {
-    outHook()
+    mapLink ! Quit(body.id)
+  }
+
+}
+
+
+case class ChangingServer(pl : PlayerLink, user : AbstractUser, servLink : Actor, fsj : FloorServerJump, servName : String) extends PlayerLinkState {
+
+  override def inHook(){
+    servLink ! PlayerJumpingInit(fsj.map, fsj.pos.toPosition)
+  }
+
+  override def act(a : Any) = a match {
+    case FROM_LINK(pji : PlayerJumpingId) =>
+
+      val url = Servers.getMoveUrl(servName, pji.id)
+      pl.ws ! YouJump(url)
+
+      //the client should kill itself
+      pl.setState(PlayerNotConnected(pl))
   }
 
 }
@@ -129,30 +173,6 @@ class PlayerLink() extends Actor {
     }
   }
 
-  //var body : Option[Body] = None
-  //var mapLink : Option[Actor] = None
-
-  //var servLink : Option[Actor] = None
-
-  //var movingServName : Option[String]  = None
-  //var movingFuturePlayer : Option[PlayerJumpingInit] = None
-
-  //def act = {
-
-  //  case ChangeMap(mapRoom, pos) =>
-  //    if(mapLink != None){
-  //      mapLink.get ! Quit(this.body.get.id)
-  //      wsLink.get ! YouQuit()
-  //    }
-
-  //    mapLink = Some(mapRoom)
-  //    mapLink.get ! PlayerJoin(pos, this)
-
-  //  case cm : CurrentMap =>
-  //    body = Some(cm.your_body)
-  //    wsLink.get ! cm
-
-  //  case FROM_LINK(mm : Me_Move) => mapLink.get ! (body.get.id, mm)
 
   //  case e : CONNECTION_END =>
   //    //wsLink = None
@@ -243,23 +263,6 @@ class PlayerLink() extends Actor {
   //  case pj : Player_Join => wsLink.get ! pj
   //  //case q : Quit => wsLink.get ! YouQuit()
 
-  //  case FloorServerJump(servName, mapName, pos) =>
-  //    mapLink.get ! Quit(body.get.id)
-  //    wsLink.get ! YouQuit()
-
-  //    servLink = Some(models.Servers.getServerLink(servName, this))
-
-  //    servLink.get ! PlayerJumpingInit(mapName, pos)
-
-  //    movingServName = Some(servName)
-  //    state = PlayerLinkState.changingServer
-
-  //  case FROM_LINK(PlayerJumpingId(id)) => id
-  //  val url = Servers.getMoveUrl(movingServName.get, id)
-  //  wsLink.get ! YouJump(url)
-
-  //  wsLink.get ! 'quit
-  //  exit
 
   //  case x : Any => println("ClientActor receive : ", x)
 

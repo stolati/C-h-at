@@ -11,7 +11,7 @@ import play.api.Play.current //to keep current application in scope
 
 object ExternalLink {
   case class CONNECTION_END(ex : Exception)
-  case class FROM_LINK(o : Any)
+  case class FROM_LINK(o : Any) //TODO say inside from which connection it's from (security issue)
 }
 
 abstract trait ExternalLink extends Actor {}

@@ -16,7 +16,9 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
 
   MAP_MSG =
     MAP_CONTENT : "map:init"
+    PLAYER_QUIT : "map:player_quit"
     MAP_QUIT : "map:quit"
+
 
     ME_MOVING : "map:me_moving"
 
@@ -32,11 +34,12 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
     defaults:
       state : MAP_STATUS.NOT_MAP
       mainPlayer : null
+    changeValidated : null
 
     initialize: () ->
       _.bindAll @
       heart.on(MAP_MSG.MAP_CONTENT, @setMapContent)
-      heart.on(MAP_MSG.MAP_QUIT, @mapQuit)
+      heart.on(MAP_MSG.PLAYER_QUIT, @playerQuit)
       heart.on(MAP_MSG.PLAYER_STATUS, @playerStatus)
 
 
@@ -47,10 +50,14 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
       id = my_body["id"]["id"]
       [x, y] = [my_body["pos"]["x"], my_body["pos"]["y"]]
       @set('mainPlayer', new MapPlayer({posX : x, posY: y, _id:id}))
+      @changeValidated = true
       @set('state', MAP_STATUS.ON_MAP)
 
-    mapQuit : () ->
-      @set('state', MAP_STATUS.NO_MAP)
+    playerQuit : (id) ->
+      if @get('mainPlayer')?.id == id['id']
+        log.debug "changing states to no map"
+        @set('state', MAP_STATUS.NO_MAP)
+        heart.trigger(MAP_MSG.MAP_QUIT)
 
     playerStatus : (id, pos) ->
       [id, x, y] = [id['id'], pos['x'], pos['y']]
@@ -59,11 +66,16 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
 
       if id != mp?.id then return
 
+      log.debug "playerStatus = true"
+
+      @changeValidated = true
       mp.setPos(x, y)
       @trigger("change:mainPlayer", @, mp)
 
     moveAction: (where) ->
       log.debug "moving to ", where
+      log.debug "with changeValidated = ", @changeValidated
+      if ! @changeValidated then return
 
       [curX, curY] = @get("mainPlayer").getPos()
 
@@ -75,6 +87,7 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
         else return
 
       @get("mainPlayer").setPos(curX, curY)
+      @changeValidated = false
       @trigger("change:mainPlayer", @, @get("mainPlayer"))
       heart.trigger(MAP_MSG.ME_MOVING, play_map.pos2Position([curX, curY]))
 

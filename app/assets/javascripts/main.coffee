@@ -54,10 +54,12 @@ requirejs.config
           'login:connect(username, password)' : 'PlayerCredential'
           'login:get_list()' : 'GetPlayerList'
           'map:me_moving(pos)' : 'Me_Move'
+          'login:connect_with_id(id)' : 'PlayerJumpingId'
 
         from_serv :
           'KOPlayerCredential' : 'login:failed(msg)'
           'OKPlayerCredential' : 'login:success()'
+          'YouJump' : 'login:change_url(url)'
           'PlayerList' : 'login:list(content)'
           'CurrentMap' : 'map:init(your_body, others_body, map)'
           'Player_Status' : 'map:player_status(id, pos)'
@@ -83,18 +85,16 @@ define(['log', 'heart', 'linkServer', 'login', 'play_map', 'map_floor', 'map_pla
   mpm = new map_player.MapPlayerModel()
   new map_player.MapPlayerView({model:mpm, mapMain : pmv})
 
-
-
   heart.trigger('init')
 
   #from there, it's for dev purpose
-  heart.trigger('login:connect', 'toto', 'toto')
+  #heart.trigger('login:connect', 'toto', 'toto')
 
-  heart.on('map:player_join', ()->
-    _.defer( ()->
-      heart.trigger('map:me_moving', {_t:'Position', x : 16.5, y : 6 })
-    )
-  )
+  #heart.on('map:player_join', ()->
+  #  _.defer( ()->
+  #    heart.trigger('map:me_moving', {_t:'Position', x : 16.5, y : 6 })
+  #  )
+  #)
 
 )
 

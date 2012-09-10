@@ -97,8 +97,8 @@ class MapRoom(myMap : MapSurface) extends Actor {
         member.actor ! ChangeMap(MapRoom.getMap(mapName), pos)
 
       case FloorServerJump(servName, mapName, pos) =>
-        print("server jump stuff")
         member.actor ! FloorServerJump(servName, mapName, pos)
+
       case Floor() => playerMove(id, new_pos)
       case Block() => assert(false)
     }

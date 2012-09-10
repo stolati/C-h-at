@@ -43,11 +43,8 @@ case class Player_Quit(id : Id) extends Msg
 
 case class Me_JumpingId(id : Id) extends Msg
 
-//server -> client class
-
+//Jumping stuff
 case class YouJump(url : String) extends Msg
-
-//server -> server
 case class PlayerJumpingInit(mapName : String, pos : Position) extends Msg
 case class PlayerJumpingId(id : Id) extends Msg
 

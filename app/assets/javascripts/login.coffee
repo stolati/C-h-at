@@ -23,6 +23,7 @@ define(['log', 'heart'], (log, heart) ->
     CONNECT : "login:connect"
     LIST : "login:list"
     ASK_LIST : "login:get_list"
+    CHANGE_URL : 'login:change_url'
 
 
   class LoginModel extends Backbone.Model
@@ -40,8 +41,10 @@ define(['log', 'heart'], (log, heart) ->
       heart.on(LOGIN_MSG.SUCCESS, _.bind(@setState, @, LOGIN_STATUS.SUCCESS) )
       heart.on(LOGIN_MSG.FAILED, _.bind(@setState, @, LOGIN_STATUS.FAIL) )
       heart.on(LOGIN_MSG.LIST, _.bind(@addToList, @) )
+      heart.on(LOGIN_MSG.CHANGE_URL, _.bind(@change_url, @))
 
-      heart.on('init', () -> heart.trigger(LOGIN_MSG.ASK_LIST))
+    change_url: (url) ->
+      window.location.href = url
 
     addToList: (listNames) ->
       @set("listNames", @get("listNames").concat(listNames))
@@ -52,6 +55,11 @@ define(['log', 'heart'], (log, heart) ->
       log.info "launching on #{name} with pass "+pass
       @setState(LOGIN_STATUS.WAIT_CHECK)
       heart.trigger("login:connect", name, pass)
+
+    haveConnectionId : (id) ->
+      log.debug "have connection id : " + id
+      @setState(LOGIN_STATUS.WAIT_CHECK)
+      heart.trigger("login:connect_with_id", {'_t' : 'Id', 'id' : id})
 
 
   class LoginView extends Backbone.View
@@ -78,6 +86,17 @@ define(['log', 'heart'], (log, heart) ->
          minLength : 1,
          source : ['toto', 'tutu', 'titi']
       })
+
+
+      #loop through search part of the url
+      for keyVal in window.location.search.substr(1).split("&")
+        [key, val] = keyVal.split("=")
+        key = unescape(key)
+        val = (if val? then unescape(val) else "")
+
+        if key == "id"
+          @model.haveConnectionId(val)
+
 
     render : () ->
       state = @model.get('state')

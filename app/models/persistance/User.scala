@@ -12,15 +12,22 @@ import mongoContext._
 import java.security.MessageDigest
 import models.persistance.User.Security
 
-case class User(
-                 id: ObjectId = new ObjectId,
+trait AbstractUser {
+  def getPos : Option[Pos]
+  def getMapName : Option[String]
+}
+
+case class User (id: ObjectId = new ObjectId,
                  username: String,
                  var password: String,
                  salt: String = Security.nextSalt,
                  added: Date = new Date(),
                  var mapName: Option[String] = None,
                  var curPos : Option[Pos] = None
-                 )
+                 ) extends AbstractUser {
+  override def getPos = curPos
+  override def getMapName = mapName
+}
 
 object User extends ModelCompanion[User, ObjectId] {
   val collection = mongoCollection("users")
