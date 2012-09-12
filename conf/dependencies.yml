@@ -1,5 +1,4 @@
-#Application dependencies (need for heroku)
+# Application dependencies
 
 require:
-  - play 1.2.0
-
+    - play 1.2.4
