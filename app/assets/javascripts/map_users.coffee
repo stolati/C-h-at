@@ -33,7 +33,6 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
     # response to msg
     ###############
     setMapContent : (my_body, others_body, cur_map) ->
-      log.debug "set map content for map users"
       id = my_body["id"]["id"]
       [x, y] = [my_body["pos"]["x"], my_body["pos"]["y"]]
       @set('mainPlayer', new MapPlayer({posX : x, posY: y, _id:id}))
@@ -55,9 +54,6 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
 
     playerState: (id, pos) ->
       if @isMain(id) then return
-
-      log.debug "id got : ", id
-      log.debug @get('players')
 
       player = @get('players').get(id['id'])
 

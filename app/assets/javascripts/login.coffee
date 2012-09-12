@@ -36,7 +36,6 @@ define(['log', 'heart'], (log, heart) ->
 
     initialize: () ->
       _.bindAll @
-      log.info @.set
       heart.on(LOGIN_MSG.INIT, _.bind(@setState, @, LOGIN_STATUS.INIT) )
       heart.on(LOGIN_MSG.SUCCESS, _.bind(@setState, @, LOGIN_STATUS.SUCCESS) )
       heart.on(LOGIN_MSG.FAILED, _.bind(@setState, @, LOGIN_STATUS.FAIL) )
@@ -52,12 +51,10 @@ define(['log', 'heart'], (log, heart) ->
     setState: (state, msg = null) -> @set({'state': state, 'msg' : msg} )
     connect: (name, pass) ->
       if @get('state') not in [LOGIN_STATUS.INIT, LOGIN_STATUS.FAIL] then return
-      log.info "launching on #{name} with pass "+pass
       @setState(LOGIN_STATUS.WAIT_CHECK)
       heart.trigger("login:connect", name, pass)
 
     haveConnectionId : (id) ->
-      log.debug "have connection id : " + id
       @setState(LOGIN_STATUS.WAIT_CHECK)
       heart.trigger("login:connect_with_id", {'_t' : 'Id', 'id' : id})
 

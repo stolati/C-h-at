@@ -16,9 +16,7 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
 
   MAP_MSG =
     MAP_CONTENT : "map:init"
-    PLAYER_QUIT : "map:player_quit"
     MAP_QUIT : "map:quit"
-
 
     ME_MOVING : "map:me_moving"
 
@@ -39,7 +37,7 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
     initialize: () ->
       _.bindAll @
       heart.on(MAP_MSG.MAP_CONTENT, @setMapContent)
-      heart.on(MAP_MSG.PLAYER_QUIT, @playerQuit)
+      heart.on(MAP_MSG.MAP_QUIT, @mapQuit)
       heart.on(MAP_MSG.PLAYER_STATUS, @playerStatus)
 
 
@@ -53,11 +51,8 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
       @changeValidated = true
       @set('state', MAP_STATUS.ON_MAP)
 
-    playerQuit : (id) ->
-      if @get('mainPlayer')?.id == id['id']
-        log.debug "changing states to no map"
-        @set('state', MAP_STATUS.NO_MAP)
-        heart.trigger(MAP_MSG.MAP_QUIT)
+    mapQuit : (id) ->
+      if @get('mainPlayer').id == id['id'] then @set('state', MAP_STATUS.NO_MAP)
 
     playerStatus : (id, pos) ->
       [id, x, y] = [id['id'], pos['x'], pos['y']]
@@ -68,22 +63,23 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
 
       log.debug "playerStatus = true"
 
-      @changeValidated = true
+      @changeValidate = true
       mp.setPos(x, y)
       @trigger("change:mainPlayer", @, mp)
 
     moveAction: (where) ->
       log.debug "moving to ", where
-      log.debug "with changeValidated = ", @changeValidated
-      if ! @changeValidated then return
+      #if ! @changeValidated then return
 
       [curX, curY] = @get("mainPlayer").getPos()
+      move_step = 0.25
+      move_step = 1
 
       switch where
-        when "left"  then curX -= 0.25
-        when "right" then curX += 0.25
-        when "up"    then curY -= 0.25
-        when "down"  then curY += 0.25
+        when "left"  then curX -= move_step
+        when "right" then curX += move_step
+        when "up"    then curY -= move_step
+        when "down"  then curY += move_step
         else return
 
       @get("mainPlayer").setPos(curX, curY)

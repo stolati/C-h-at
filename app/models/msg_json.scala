@@ -48,7 +48,8 @@ case class YouJump(url : String) extends Msg
 case class PlayerJumpingInit(mapName : String, pos : Position) extends Msg
 case class PlayerJumpingId(id : Id) extends Msg
 
-
+//beam stuff
+case class  BeamLaunch(angle : Double) extends Msg
 
 
 

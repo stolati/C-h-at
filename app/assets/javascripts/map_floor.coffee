@@ -75,18 +75,15 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
       @mapMain = @options['mapMain']
       @model.bind('change:mapWalls', @changeView)
       @mapMain.addLayer(@el)
-      log.debug "el => ", @el
 
     changeView: (ob, walls, option) ->
       @el.clear()
 
-      log.debug "el => ", @el
 
       [sizeX, sizeY] = @model.get('mapSize')
       [mapX, mapY] = [sizeX * @step, sizeY * @step]
       @mapMain.setSize([mapX, mapY])
 
-      log.debug 'changing view'
 
       @el.add(new Kinetic.Rect({
         x : 0,
@@ -111,7 +108,6 @@ define(['module', 'log', 'heart', 'external/kinetic', 'play_map'], (module, log,
             strokeWidth: 1
           }))
 
-      log.debug "el => ", @el
 
       for e in @model.get("mapWalls").map( (e) -> e )
         @el.add(play_map.mapElement2view(e, @step))

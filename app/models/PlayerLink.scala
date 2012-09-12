@@ -75,6 +75,7 @@ case class PlayerConnected(pl : PlayerLink, user : AbstractUser, automap : Boole
   }
 
   def connectDefaultMap(){
+
     val (def_name, def_pos) = MapRoom.defaultMapInfo
 
     val name = user.getMapName.getOrElse(def_name)
@@ -117,6 +118,14 @@ case class PlayerOnMap(pl : PlayerLink, user : AbstractUser, body : Body, mapLin
       //get infos from server
       val servLink = models.Servers.getServerLink(servName, pl)
       pl.setState( ChangingServer(pl, user, servLink, FloorServerJump(servName, mapName, pos), servName) )
+
+    case FROM_LINK(BeamLaunch(angle))  =>
+
+
+
+
+
+
   }
 
   override def connectionEnd(ex : Exception) {

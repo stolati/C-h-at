@@ -48,6 +48,7 @@ requirejs.config
       map_floor : {view_step : 15}
       map_player : {view_step : 15}
       map_users : {view_step : 15}
+      map_beam : {view_step : 15}
 
       linkServer :
         to_serv :
@@ -55,6 +56,7 @@ requirejs.config
           'login:get_list()' : 'GetPlayerList'
           'map:me_moving(pos)' : 'Me_Move'
           'login:connect_with_id(id)' : 'PlayerJumpingId'
+          'beam:launch(angle)' : 'BeamLaunch'
 
         from_serv :
           'KOPlayerCredential' : 'login:failed(msg)'
@@ -68,10 +70,12 @@ requirejs.config
 
 
 #start the main logic
-define(['log', 'heart', 'linkServer', 'login', 'play_map', 'map_floor', 'map_player', 'map_users'],
-(log, heart, linkServ, login, play_map, map_floor, map_player, map_users)->
+define(['log', 'heart', 'linkServer', 'login', 'play_map', 'map_floor', 'map_player', 'map_users', 'map_beam'],
+(log, heart, linkServ, login, play_map, map_floor, map_player, map_users, map_beam)->
 
   log.info "login : ", login
+
+
 
   pmm = new play_map.PlayMapModel()
   pmv = new play_map.PlayMapView({model:pmm})
@@ -84,6 +88,9 @@ define(['log', 'heart', 'linkServer', 'login', 'play_map', 'map_floor', 'map_pla
 
   mpm = new map_player.MapPlayerModel()
   new map_player.MapPlayerView({model:mpm, mapMain : pmv})
+
+  #mbm = new map_beam.MapBeamModel()
+  #new map_beam.MapBeamView({model : mbm, mapMain : pmv})
 
   heart.trigger('init')
 

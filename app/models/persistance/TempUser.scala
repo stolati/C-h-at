@@ -6,12 +6,11 @@ import java.util.Date
 import com.novus.salat._
 import com.novus.salat.annotations._
 import com.novus.salat.dao._
-//import com.mongodb.casbah.Imports._
+import com.mongodb.casbah.Imports._
 import se.radley.plugin.salat._
 import mongoContext._
 import java.security.MessageDigest
 import models.persistance.User.Security
-import org.bson.types.ObjectId
 
 
 case class TempUser(id: ObjectId = new ObjectId,
@@ -30,11 +29,11 @@ object TempUser extends ModelCompanion[TempUser, ObjectId] {
   def add(mapName : String, pos : Pos) = {
     val tu = TempUser(new ObjectId, new Date(), mapName, pos)
     TempUser.save(tu)
-    object_id.Object_id.objectId2string(tu.id)
+    tu.id.toStringBabble
   }
 
   def getUser(s : String) : Option[TempUser] = {
-    val id = object_id.Object_id.string2objectId(s)
+    val id = new ObjectId(s, true)
     dao.findOneById(id)
   }
 
