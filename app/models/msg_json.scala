@@ -85,12 +85,38 @@ object Transform {
     def classFor(hint: String) = hints find (hintFor(_) == hint)
   }
 
+
+
   import net.liftweb.json._
   import net.liftweb.json.Serialization._
 
   implicit val formats = new Formats {
     val dateFormat = DefaultFormats.lossless.dateFormat
-    override val typeHints = ComplexTypeHints("models.msg_json", "models.msg_json.Msg")
+    //override val typeHints = ComplexTypeHints("models.msg_json", "models.msg_json.Msg")
+    override val typeHints = ShortTypeHints(List(
+      classOf[OnlyForTest],
+      classOf[Id],
+      classOf[Body],
+      classOf[Position],
+      classOf[PlayerCredential],
+      classOf[OKPlayerCredential],
+      classOf[KOPlayerCredential],
+      classOf[GetPlayerList],
+      classOf[PlayerList],
+      classOf[CurrentMap],
+      classOf[MapSurfaceVisible],
+      classOf[MapElementVisible],
+      classOf[YouQuit],
+      classOf[Me_Move],
+      classOf[Player_Status],
+      classOf[Player_Join],
+      classOf[Player_Quit],
+      classOf[Me_JumpingId],
+      classOf[YouJump],
+      classOf[PlayerJumpingInit],
+      classOf[PlayerJumpingId],
+      classOf[BeamLaunch]
+    ))
     override val typeHintFieldName = "_t"
   }
 
@@ -123,4 +149,11 @@ object MsgJsonTest {
   }
 
 }
+
+
+
+
+
+
+
 
